@@ -91,7 +91,7 @@ ok "Container started"
 # ── Step 4: Wait for server and open browser ─────────────────────────────────
 info "Step 4/4 — Waiting for server to be ready..."
 URL="http://localhost:$PORT"
-MAX_RETRIES=30
+MAX_RETRIES=60
 for i in $(seq 1 $MAX_RETRIES); do
     if curl -sf "$URL/api/health" &>/dev/null; then
         ok "Server is up at $URL"
@@ -102,7 +102,7 @@ for i in $(seq 1 $MAX_RETRIES); do
         break
     fi
     echo -n "."
-    sleep 1
+    sleep 2
 done
 echo ""
 
@@ -131,7 +131,8 @@ if [[ "$OPENED" == "false" ]]; then
         open -a "Google Chrome" "$URL" 2>/dev/null || open "$URL"; OPENED=true
     # Linux fallback
     elif command -v xdg-open &>/dev/null; then
-        xdg-open "$URL" &; OPENED=true
+        xdg-open "$URL" &
+        OPENED=true
     fi
 fi
 [[ "$OPENED" == "false" ]] && warn "Could not auto-open browser — navigate to: $URL"
