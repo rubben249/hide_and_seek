@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     ws_auth_timeout: int = 5          # seconds to authenticate before WS closes
     room_idle_timeout: int = 1800     # seconds of inactivity before room auto-closes
 
+    # ---- Admin panel ----
+    admin_password: str = "admin_change_me"   # password to access /admin
+
     # ---- User accounts ----
     jwt_secret: str = "change_jwt_secret_before_deploying"
     jwt_expire_hours: int = 720       # 30 days
@@ -32,12 +35,20 @@ class Settings(BaseSettings):
     team_2v1_discard_solo: int = 4    # the solo player in 2v1 gets this many discards
 
     # ---- Game timers (all in seconds) ----
-    game_time_limit: int = 1800       # 30 minutes: max total game duration
-    player_time_limit: int = 900      # 15 minutes: max total time per player across all turns
+    game_time_limit: int = 1800       # 30 minutes: max total game duration (2-player)
+    player_time_limit: int = 900      # 15 minutes: max total time per player (2-player)
     turn_time_limit: int = 120        # 2 minutes: max time per individual turn
     turn_countdown_threshold: int = 30  # show visual countdown when ≤ this many seconds remain
     animation_grace_seconds: int = 6  # seconds to wait for turn_ready before auto-starting clock
     player_warning_fractions: str = "0.25,0.5,0.75"  # warn when this fraction of player_time_limit is used
+
+    # ---- Multi-player timer scaling (>2 players) ----
+    player_time_2plus: int = 600      # 10 minutes per player when >2 players
+    game_time_per_player: int = 600   # game time = this × number of players when >2
+
+    # ---- Disconnect handling ----
+    disconnect_skip_seconds: int = 30  # auto-skip a disconnected player's turn after this many seconds
+    disconnect_max_skips: int = 2      # after this many skipped turns → automatic loss
 
     @property
     def origins_list(self) -> list[str]:

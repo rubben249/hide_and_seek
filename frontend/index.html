@@ -4,22 +4,97 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TAG! — The Playground Chase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/css/styles.css"/>
 </head>
 <body>
 
 <!-- ============================================================
+     USER BAR (top, always visible)
+============================================================ -->
+<div id="user-bar">
+  <div id="user-bar-inner">
+    <span id="user-greeting" class="user-greeting hidden"></span>
+    <button id="btn-leaderboard" class="btn-user-action hidden" onclick="showLeaderboard()">🏆 Top</button>
+    <button id="btn-auth-open" class="btn-user-action" onclick="openAuthModal()">Sign In</button>
+    <button id="btn-logout" class="btn-user-action btn-user-danger hidden" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     AUTH MODAL
+============================================================ -->
+<div id="auth-modal" class="modal-backdrop hidden" onclick="closeAuthOnBackdrop(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuthModal()">×</button>
+
+    <div class="auth-tabs">
+      <button id="tab-login"    class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button id="tab-register" class="auth-tab"        onclick="switchTab('register')">Create Account</button>
+    </div>
+
+    <!-- Login -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>Username</label>
+        <input id="login-username" type="text" placeholder="YourName" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <div id="login-error" class="form-error hidden"></div>
+      <button class="btn btn-primary w-full" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- Register -->
+    <div id="form-register" class="hidden">
+      <div class="form-group">
+        <label>Username <span class="form-hint">3–32 chars, letters/numbers/_/-</span></label>
+        <input id="reg-username" type="text" placeholder="YourName" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Password <span class="form-hint">min 8 characters</span></label>
+        <input id="reg-password" type="password" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <div id="reg-error" class="form-error hidden"></div>
+      <button class="btn btn-primary w-full" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     LEADERBOARD MODAL
+============================================================ -->
+<div id="leaderboard-modal" class="modal-backdrop hidden" onclick="closeLeaderboardOnBackdrop(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeLeaderboard()">×</button>
+    <h2 class="modal-title">🏆 Top Players</h2>
+    <div id="leaderboard-list"><p style="color:#aaa;text-align:center;padding:20px;">Loading…</p></div>
+  </div>
+</div>
+
+<!-- ============================================================
      MAIN MENU
 ============================================================ -->
 <div id="screen-menu" class="screen active">
-  <h1 class="title">TAG!</h1>
-  <p class="subtitle">The Playground Chase</p>
-  <div class="menu">
-    <button id="btn-solo" class="btn btn-primary">🤖 Solo vs AI</button>
-    <button id="btn-local" class="btn btn-secondary">👥 Local Multiplayer</button>
-    <button id="btn-online" class="btn btn-outline">🌐 Online</button>
+  <div class="hero">
+    <div class="hero-emoji">🏃</div>
+    <h1 class="title">TAG!</h1>
+    <p class="subtitle">The Playground Chase</p>
   </div>
-  <p style="margin-top:32px;font-size:.75rem;color:#aaa;">Inspired by Agent Avenue · For 2-4 players</p>
+  <div class="menu">
+    <button id="btn-solo"   class="btn btn-primary btn-menu">🤖 Solo vs AI</button>
+    <button id="btn-local"  class="btn btn-secondary btn-menu">👥 Local Multiplayer</button>
+    <button id="btn-online" class="btn btn-outline btn-menu">🌐 Online with Friends</button>
+  </div>
+  <p class="menu-footer">Inspired by Agent Avenue · 2–4 players</p>
 </div>
 
 <!-- ============================================================
@@ -40,16 +115,14 @@
       <select id="solo-difficulty">
         <option value="beginner">🟢 Beginner — random play</option>
         <option value="veteran" selected>🟡 Veteran — 1-turn lookahead</option>
-        <option value="maestro">🔴 Maestro — deep strategy (2-3 turns)</option>
+        <option value="maestro">🔴 Maestro — deep strategy</option>
       </select>
     </div>
-    <p style="font-size:.8rem;color:#7a6a45;">
-      The AI only sees public information — it never cheats by looking at your hand.
-    </p>
+    <p class="form-note">The AI only sees public information — it never cheats.</p>
   </div>
 
-  <div class="menu">
-    <button id="btn-start-solo" class="btn btn-primary">Start Game</button>
+  <div class="menu" style="max-width:360px;">
+    <button id="btn-start-solo" class="btn btn-primary">▶ Start Game</button>
     <button class="btn btn-outline btn-back">← Back</button>
   </div>
 </div>
@@ -68,8 +141,8 @@
       <select id="local-mode">
         <option value="local_1v1">1v1 — Two players</option>
         <option value="local_2v2">2v2 — Teams</option>
-        <option value="local_2v1">2v1 — Team vs Solo (solo gets 4 discards)</option>
-        <option value="local_ffa">FFA — 4 players free-for-all (attack freely)</option>
+        <option value="local_2v1">2v1 — Team vs Solo</option>
+        <option value="local_ffa">FFA — 4 players free-for-all</option>
       </select>
     </div>
     <div class="form-group">
@@ -78,24 +151,15 @@
     </div>
   </div>
 
-  <div class="form-section" style="background:#fffaec;">
-    <h3>📖 2v1 rules</h3>
-    <p style="font-size:.8rem;color:#7a6a45;">
-      The solo player gets <strong>4 discards</strong> total. Each teammate gets <strong>2 discards</strong>.
-      The team shares one pawn and one pool of recruited cards. Each teammate has their own hand.
-    </p>
+  <div class="info-box">
+    <b>2v1:</b> solo player gets 4 discards; each teammate gets 2. Team shares one pawn and recruited cards.
+  </div>
+  <div class="info-box">
+    <b>FFA:</b> each turn choose a target, play 2 cards. Target picks 1, you keep the other. Win by catching anyone or 3 Masterminds. 3 Show-offs = eliminated!
   </div>
 
-  <div class="form-section" style="background:#fffaec;">
-    <h3>📖 FFA rules</h3>
-    <p style="font-size:.8rem;color:#7a6a45;">
-      Each turn: choose a target, play 2 cards. Target picks 1 card; you keep the other. Only you and your target move.
-      Win by catching any opponent or collecting 3 Masterminds. 3 Show-offs = eliminated!
-    </p>
-  </div>
-
-  <div class="menu">
-    <button id="btn-start-local" class="btn btn-primary">Start Game</button>
+  <div class="menu" style="max-width:360px;">
+    <button id="btn-start-local" class="btn btn-primary">▶ Start Game</button>
     <button class="btn btn-outline btn-back">← Back</button>
   </div>
 </div>
@@ -107,6 +171,7 @@
   <h1 class="title">Online</h1>
   <p class="subtitle">Play with friends over the network</p>
 
+  <!-- Connect to server -->
   <div id="online-connect-form" class="form-section">
     <h3>🔐 Connect to server</h3>
     <div class="form-group">
@@ -114,46 +179,70 @@
       <input id="online-name" type="text" placeholder="Player" value="Player"/>
     </div>
     <div class="form-group">
-      <label>Server password</label>
-      <input id="online-password" type="password" placeholder="Ask the host for the password"/>
+      <label>Server password <span class="form-hint">ask the host</span></label>
+      <input id="online-password" type="password" placeholder="Server password"/>
     </div>
-    <button id="btn-connect" class="btn btn-primary">Connect</button>
+    <button id="btn-connect" class="btn btn-primary w-full">Connect</button>
   </div>
 
-  <div id="online-lobby" class="form-section hidden">
-    <h3>🏠 Lobby</h3>
-    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-      <div class="form-group" style="flex:1;min-width:140px;">
-        <label>Mode</label>
-        <select id="online-mode">
-          <option value="local_1v1">1v1</option>
-          <option value="local_2v2">2v2</option>
-          <option value="local_ffa">FFA 4p</option>
-        </select>
+  <!-- Lobby (shown after connect) -->
+  <div id="online-lobby" class="hidden" style="width:100%;max-width:520px;">
+
+    <!-- Create room -->
+    <div class="form-section">
+      <h3>🏠 Create a room</h3>
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label>Room name</label>
+          <input id="online-room-name" type="text" placeholder="Friday Night"/>
+        </div>
+        <div class="form-group" style="width:130px;">
+          <label>Mode</label>
+          <select id="online-mode">
+            <option value="local_1v1">1v1</option>
+            <option value="local_2v2">2v2</option>
+            <option value="local_ffa">FFA 4p</option>
+          </select>
+        </div>
       </div>
-      <button id="btn-create-room" class="btn btn-primary btn-sm">Create Room</button>
+      <div class="form-group">
+        <label>Room password <span class="form-hint">optional — leave empty for open</span></label>
+        <input id="online-room-password" type="text" placeholder="Leave empty for no password"/>
+      </div>
+      <button id="btn-create-room" class="btn btn-primary">Create Room</button>
     </div>
 
-    <hr class="divider"/>
-
-    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-      <div class="form-group" style="flex:1;min-width:140px;">
-        <label>Room code</label>
-        <input id="online-room-code" type="text" placeholder="ABCD" maxlength="8" style="text-transform:uppercase;"/>
+    <!-- Join room -->
+    <div class="form-section">
+      <h3>🚪 Join a room</h3>
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label>Room code</label>
+          <input id="online-room-code" type="text" placeholder="ABCD1234" maxlength="8" style="text-transform:uppercase;"/>
+        </div>
+        <div class="form-group" style="width:150px;">
+          <label>Room password</label>
+          <input id="online-join-password" type="text" placeholder="If required"/>
+        </div>
       </div>
-      <button id="btn-join-room" class="btn btn-secondary btn-sm">Join Room</button>
+      <button id="btn-join-room" class="btn btn-secondary">Join Room</button>
     </div>
 
-    <div id="online-room-id-display" style="font-size:1.2rem;font-weight:900;color:#2d7a45;text-align:center;padding:8px 0;"></div>
+    <!-- Current room info -->
+    <div class="form-section" id="online-room-section" style="display:none;">
+      <h3 id="online-room-header">Room: </h3>
+      <div id="online-room-id-display" class="room-code-display"></div>
+      <div id="online-players-list" style="margin:8px 0;"></div>
+      <button id="btn-start-online" class="btn btn-primary w-full">▶ Start Game</button>
+    </div>
 
-    <button id="btn-start-online" class="btn btn-primary w-full">▶ Start Game</button>
-
-    <hr class="divider"/>
-    <label style="font-size:.8rem;color:#7a6a45;">Server log</label>
-    <div id="chat-log"></div>
+    <div class="form-section">
+      <label style="font-size:.8rem;color:#7a6a45;font-weight:600;">Server log</label>
+      <div id="chat-log"></div>
+    </div>
   </div>
 
-  <div class="menu" style="max-width:480px;">
+  <div class="menu" style="max-width:520px;">
     <button class="btn btn-outline btn-back">← Back</button>
   </div>
 </div>
@@ -162,24 +251,20 @@
      GAME SCREEN
 ============================================================ -->
 <div id="screen-game" class="screen">
-  <div id="status-bar">Loading...</div>
+  <div id="status-bar">Loading…</div>
 
-  <!-- Timer bar -->
   <div id="timer-bar">
     <div class="timer-cell" id="timer-turn-cell">
       <span class="timer-label">Turn</span>
       <span id="timer-turn-display" class="timer-value">2:00</span>
     </div>
-    <div class="timer-cell timer-players" id="timer-players-cell">
-      <!-- filled by JS: one block per player -->
-    </div>
+    <div class="timer-cell timer-players" id="timer-players-cell"></div>
     <div class="timer-cell" id="timer-game-cell">
       <span class="timer-label">Game</span>
       <span id="timer-game-display" class="timer-value">30:00</span>
     </div>
   </div>
 
-  <!-- Timer warning banner -->
   <div id="timer-warning" class="timer-warning hidden"></div>
 
   <div id="board-container"></div>
@@ -192,6 +277,24 @@
 
   <div id="players-area" style="width:100%;max-width:900px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;"></div>
 
+  <!-- In-game chat (online mode) -->
+  <div id="ingame-chat" class="ingame-chat hidden">
+    <div id="ingame-chat-log" class="ingame-chat-log"></div>
+    <div class="ingame-chat-input-row">
+      <input id="ingame-chat-text" type="text" placeholder="Message everyone…" maxlength="200"/>
+      <button onclick="sendChatAll()" class="btn btn-sm btn-primary">Send</button>
+    </div>
+    <div id="reaction-bar" class="reaction-bar">
+      <span class="reaction-label">React:</span>
+      <button onclick="sendReaction('good_play')"   class="reaction-btn" title="Good play">👍</button>
+      <button onclick="sendReaction('haha')"        class="reaction-btn" title="Haha">😂</button>
+      <button onclick="sendReaction('wow')"         class="reaction-btn" title="Wow">😮</button>
+      <button onclick="sendReaction('fire')"        class="reaction-btn" title="Fire">🔥</button>
+      <button onclick="sendReaction('celebrate')"   class="reaction-btn" title="Celebrate">🎉</button>
+      <button onclick="sendReaction('well_played')" class="reaction-btn" title="Well played">👏</button>
+    </div>
+  </div>
+
   <div style="margin-top:16px;">
     <button class="btn btn-outline btn-sm btn-back">⬅ Quit to Menu</button>
   </div>
@@ -202,9 +305,11 @@
 ============================================================ -->
 <div id="screen-result" class="screen">
   <div id="result-box">
-    <h2 id="result-winner">🏆 Player wins!</h2>
+    <div id="result-trophy">🏆</div>
+    <h2 id="result-winner">Player wins!</h2>
     <p id="result-reason"></p>
-    <button id="btn-play-again" class="btn btn-primary w-full">Play Again</button>
+    <button id="btn-play-again" class="btn btn-primary w-full" style="margin-top:16px;">Play Again</button>
+    <button class="btn btn-outline w-full btn-back" style="margin-top:8px;">← Main Menu</button>
   </div>
 </div>
 
@@ -212,10 +317,13 @@
      PASS SCREEN OVERLAY (hot-seat)
 ============================================================ -->
 <div id="pass-overlay">
-  <h2>Pass the device!</h2>
-  <p>Next player: <strong id="pass-player-name"></strong></p>
-  <p style="font-size:.85rem;">Don't look at the screen until it's your turn!</p>
-  <button id="btn-pass-confirm" class="btn btn-primary">I'm ready →</button>
+  <div class="pass-inner">
+    <div style="font-size:3rem;">🙈</div>
+    <h2>Pass the device!</h2>
+    <p>Next player: <strong id="pass-player-name"></strong></p>
+    <p style="font-size:.85rem;color:#aaa;">Don't peek until you're ready!</p>
+    <button id="btn-pass-confirm" class="btn btn-primary" style="margin-top:16px;">I'm ready →</button>
+  </div>
 </div>
 
 <script type="module" src="/js/app.js"></script>

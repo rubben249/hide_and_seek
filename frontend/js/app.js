@@ -16,6 +16,44 @@ let socket = null;
 let onlineMyToken = null;
 let onlineMyPlayerId = null;
 
+// ---- Auth ----
+let authToken = localStorage.getItem("tag_token") || null;
+let authUsername = localStorage.getItem("tag_username") || null;
+
+function _saveAuth(token, username) {
+  authToken = token; authUsername = username;
+  localStorage.setItem("tag_token", token);
+  localStorage.setItem("tag_username", username);
+}
+function _clearAuth() {
+  authToken = null; authUsername = null;
+  localStorage.removeItem("tag_token");
+  localStorage.removeItem("tag_username");
+}
+
+function updateAuthUI() {
+  const greeting   = document.getElementById("user-greeting");
+  const btnSignIn  = document.getElementById("btn-auth-open");
+  const btnLb      = document.getElementById("btn-leaderboard");
+  const btnLogout  = document.getElementById("btn-logout");
+  const soloName   = document.getElementById("solo-name");
+  const onlineName = document.getElementById("online-name");
+  if (authUsername) {
+    greeting?.classList.remove("hidden");
+    if (greeting) greeting.textContent = `Hi, ${authUsername}!`;
+    btnSignIn?.classList.add("hidden");
+    btnLb?.classList.remove("hidden");
+    btnLogout?.classList.remove("hidden");
+    if (soloName)   soloName.value   = authUsername;
+    if (onlineName) onlineName.value = authUsername;
+  } else {
+    greeting?.classList.add("hidden");
+    btnSignIn?.classList.remove("hidden");
+    btnLb?.classList.add("hidden");
+    btnLogout?.classList.add("hidden");
+  }
+}
+
 // ---- Timer state (local/solo mode — client-side tracking) ----
 const timer = {
   interval: null,        // setInterval handle
@@ -276,14 +314,17 @@ document.getElementById("btn-connect")?.addEventListener("click", async () => {
 });
 
 document.getElementById("btn-create-room")?.addEventListener("click", () => {
-  const mode = document.getElementById("online-mode").value;
-  socket?.createRoom(mode);
+  const mode     = document.getElementById("online-mode").value;
+  const roomName = document.getElementById("online-room-name")?.value.trim() || "";
+  const roomPw   = document.getElementById("online-room-password")?.value || "";
+  socket?.createRoom(mode, roomName, roomPw);
 });
 
 document.getElementById("btn-join-room")?.addEventListener("click", () => {
-  const code = document.getElementById("online-room-code").value.trim().toUpperCase();
+  const code   = document.getElementById("online-room-code")?.value.trim().toUpperCase();
+  const roomPw = document.getElementById("online-join-password")?.value || "";
   if (!code) { alert("Enter a room code"); return; }
-  socket?.joinRoom(code);
+  socket?.joinRoom(code, roomPw);
 });
 
 document.getElementById("btn-start-online")?.addEventListener("click", () => {
@@ -291,41 +332,92 @@ document.getElementById("btn-start-online")?.addEventListener("click", () => {
 });
 
 function handleOnlineMessage(msg) {
-  logOnline(JSON.stringify(msg).substring(0, 120), "system");
   if (msg.type === "room_created") {
-    logOnline(`Room created: ${msg.room_id}`, "system");
-    document.getElementById("online-room-id-display").textContent = msg.room_id;
+    const name = msg.room_name || msg.room_id;
+    logOnline(`Room created: ${name} (code: ${msg.room_id})`, "system");
+    const hdr = document.getElementById("online-room-header");
+    if (hdr) hdr.textContent = `Room: ${name}`;
+    const codeEl = document.getElementById("online-room-id-display");
+    if (codeEl) codeEl.textContent = msg.room_id;
+    const sec = document.getElementById("online-room-section");
+    if (sec) sec.style.display = "";
+    const list = document.getElementById("online-players-list");
+    if (list) list.innerHTML = `<span style="color:#7a6a45;font-size:.85rem;">${socket.playerName}</span>`;
+
   } else if (msg.type === "player_joined") {
-    logOnline(`${msg.players.map(p => p.name).join(", ")} in room`, "system");
-    if (msg.ready) logOnline("Room full! Start when ready.", "system");
+    const names = msg.players.map(p => p.name).join(", ");
+    logOnline(`Players: ${names}`, "system");
+    const list = document.getElementById("online-players-list");
+    if (list) list.innerHTML = msg.players.map(p =>
+      `<span style="display:inline-block;background:#f0e8cc;border-radius:6px;padding:2px 10px;margin:2px;font-size:.83rem;font-weight:700;">${p.name}</span>`
+    ).join("");
+    if (msg.ready) logOnline("Room full — host can start!", "system");
+
+  } else if (msg.type === "room_list") {
+    if (!msg.rooms?.length) {
+      logOnline("No open rooms — create one!", "system");
+    } else {
+      msg.rooms.forEach(r => {
+        const lock = r.has_password ? "🔒" : "🔓";
+        const st   = r.in_game ? "[in game]" : `${r.player_count}/${r.max_players}p`;
+        logOnline(`${lock} ${r.room_name || r.room_id}  code:${r.room_id}  ${st}`, "system");
+      });
+    }
+
   } else if (msg.type === "game_started") {
     gameState = msg.state;
     onlineMyPlayerId = gameState.players.find(p => p.name === socket.playerName)?.id;
     myPlayerId = onlineMyPlayerId;
     show("screen-game");
+    document.getElementById("ingame-chat")?.classList.remove("hidden");
     renderGameScreen();
+
   } else if (msg.type === "game_state") {
     gameState = msg.state;
     renderGameScreen();
+
   } else if (msg.type === "game_over") {
     timerStop();
     showResult(msg.result);
+
   } else if (msg.type === "timer_update") {
     timerApplyServerUpdate(msg);
+
   } else if (msg.type === "timer_warning") {
     showTimerWarning(msg.message, msg.fraction_used >= 0.75);
+
   } else if (msg.type === "timer_event") {
-    if (msg.event === "turn_timeout") {
-      showTimerWarning(`⏰ ${msg.message}`, true);
-    }
+    if (msg.event === "turn_timeout") showTimerWarning(`⏰ ${msg.message}`, true);
+
+  } else if (msg.type === "player_disconnected") {
+    const can = msg.can_rejoin ? ` (${msg.skips_remaining} turns to rejoin)` : "";
+    logIngameChat(`⚠ ${msg.player_name} disconnected${can}`, "system");
+    logOnline(`⚠ ${msg.player_name} disconnected${can}`, "error");
+
+  } else if (msg.type === "player_disconnected_waiting") {
+    showTimerWarning(`⏳ Waiting for ${msg.player_name}… (${msg.turn_skips}/${msg.max_skips} skips)`, false);
+
+  } else if (msg.type === "player_reconnected") {
+    logIngameChat(`✓ ${msg.player_name} reconnected`, "system");
+    logOnline(`✓ ${msg.player_name} reconnected`, "system");
+
   } else if (msg.type === "chat_all") {
+    logIngameChat(`${msg.from}: ${msg.text}`, "chat");
     logOnline(`[All] ${msg.from}: ${msg.text}`, "chat");
+
   } else if (msg.type === "chat_team") {
+    logIngameChat(`[Team] ${msg.from}: ${msg.text}`, "team");
     logOnline(`[Team ${msg.team}] ${msg.from}: ${msg.text}`, "team");
+
   } else if (msg.type === "reaction") {
+    logIngameChat(`${msg.emoji}  ${msg.from}`, "reaction");
     logOnline(`${msg.emoji} ${msg.from}`, "reaction");
+
   } else if (msg.type === "error") {
     logOnline(`Server error: ${msg.message}`, "error");
+
+  } else {
+    logOnline(JSON.stringify(msg).substring(0, 100), "system");
   }
 }
 
@@ -335,6 +427,16 @@ function logOnline(text, cls = "") {
   const line = document.createElement("div");
   line.className = cls ? `msg-${cls}` : "";
   line.textContent = `> ${text}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function logIngameChat(text, cls = "") {
+  const log = document.getElementById("ingame-chat-log");
+  if (!log) return;
+  const line = document.createElement("div");
+  line.className = cls ? `msg-${cls}` : "";
+  line.textContent = text;
   log.appendChild(line);
   log.scrollTop = log.scrollHeight;
 }
@@ -757,5 +859,147 @@ document.getElementById("btn-play-again")?.addEventListener("click", () => {
   show("screen-menu");
 });
 
+// ============================================================
+// AUTH MODAL — functions exposed globally for onclick handlers
+// ============================================================
+
+window.openAuthModal = function () {
+  document.getElementById("auth-modal")?.classList.remove("hidden");
+  window.switchTab("login");
+};
+
+window.closeAuthModal = function () {
+  document.getElementById("auth-modal")?.classList.add("hidden");
+};
+
+window.closeAuthOnBackdrop = function (e) {
+  if (e.target?.id === "auth-modal") window.closeAuthModal();
+};
+
+window.switchTab = function (tab) {
+  document.getElementById("form-login")?.classList.toggle("hidden", tab !== "login");
+  document.getElementById("form-register")?.classList.toggle("hidden", tab !== "register");
+  document.getElementById("tab-login")?.classList.toggle("active", tab === "login");
+  document.getElementById("tab-register")?.classList.toggle("active", tab === "register");
+};
+
+window.doLogin = async function () {
+  const username = document.getElementById("login-username")?.value.trim();
+  const password = document.getElementById("login-password")?.value;
+  const errEl    = document.getElementById("login-error");
+  errEl?.classList.add("hidden");
+  if (!username || !password) {
+    if (errEl) { errEl.textContent = "Enter username and password"; errEl.classList.remove("hidden"); }
+    return;
+  }
+  try {
+    const res  = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Login failed");
+    _saveAuth(data.access_token, data.username);
+    updateAuthUI();
+    window.closeAuthModal();
+  } catch (e) {
+    if (errEl) { errEl.textContent = e.message; errEl.classList.remove("hidden"); }
+  }
+};
+
+window.doRegister = async function () {
+  const username = document.getElementById("reg-username")?.value.trim();
+  const email    = document.getElementById("reg-email")?.value.trim();
+  const password = document.getElementById("reg-password")?.value;
+  const errEl    = document.getElementById("reg-error");
+  errEl?.classList.add("hidden");
+  if (!username || !email || !password) {
+    if (errEl) { errEl.textContent = "All fields required"; errEl.classList.remove("hidden"); }
+    return;
+  }
+  try {
+    const res  = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Registration failed");
+    _saveAuth(data.access_token, data.username);
+    updateAuthUI();
+    window.closeAuthModal();
+  } catch (e) {
+    if (errEl) { errEl.textContent = e.message; errEl.classList.remove("hidden"); }
+  }
+};
+
+window.doLogout = function () {
+  _clearAuth();
+  updateAuthUI();
+};
+
+// ============================================================
+// LEADERBOARD MODAL
+// ============================================================
+
+window.showLeaderboard = async function () {
+  document.getElementById("leaderboard-modal")?.classList.remove("hidden");
+  const listEl = document.getElementById("leaderboard-list");
+  if (!listEl) return;
+  listEl.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px;">Loading…</p>`;
+  try {
+    const res  = await fetch("/api/auth/leaderboard");
+    const data = await res.json();
+    if (!res.ok) throw new Error("Failed to load");
+    const rows = data.leaderboard || [];
+    if (!rows.length) {
+      listEl.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px;">No entries yet — play some games!</p>`;
+      return;
+    }
+    const medals = ["🥇", "🥈", "🥉"];
+    const medalCls = ["gold", "silver", "bronze"];
+    listEl.innerHTML = rows.map((r, i) => `
+      <div class="leaderboard-row">
+        <span class="lb-rank ${medalCls[i] || ""}">${medals[i] || `#${i + 1}`}</span>
+        <span class="lb-name">${r.username}</span>
+        <span class="lb-wins">${r.wins}W / ${r.games_played}G</span>
+        <span class="lb-rate">${r.win_rate}%</span>
+      </div>`).join("");
+  } catch (e) {
+    if (listEl) listEl.innerHTML = `<p style="color:#e05252;text-align:center;padding:20px;">Error: ${e.message}</p>`;
+  }
+};
+
+window.closeLeaderboard = function () {
+  document.getElementById("leaderboard-modal")?.classList.add("hidden");
+};
+
+window.closeLeaderboardOnBackdrop = function (e) {
+  if (e.target?.id === "leaderboard-modal") window.closeLeaderboard();
+};
+
+// ============================================================
+// IN-GAME CHAT (online mode)
+// ============================================================
+
+window.sendChatAll = function () {
+  const input = document.getElementById("ingame-chat-text");
+  const text  = input?.value.trim();
+  if (!text || !socket) return;
+  socket.send("chat_all", { text });
+  if (input) input.value = "";
+};
+
+window.sendReaction = function (reaction) {
+  socket?.send("reaction", { reaction });
+};
+
+// Also allow Enter key in chat input
+document.getElementById("ingame-chat-text")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") window.sendChatAll();
+});
+
 // ---- Init ----
+updateAuthUI();
 show("screen-menu");

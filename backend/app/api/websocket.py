@@ -8,6 +8,16 @@ Security flow:
   4. On success: issues {"type":"auth_ok","token":"<UUID>"}
   5. All subsequent messages must include {"token":"..."}
   6. Client can create/join rooms and play
+
+Disconnect/reconnect:
+  - If a player disconnects during an active game, they are kept in the room as disconnected.
+  - The server auto-skips their turn after disconnect_skip_seconds.
+  - After disconnect_max_skips skipped turns the server awards an automatic loss.
+  - Reconnect by sending join_room with the same player_name and the original room_id.
+
+Timer scaling:
+  - 2 players: uses PLAYER_TIME_LIMIT / GAME_TIME_LIMIT from .env
+  - >2 players: each player gets PLAYER_TIME_2PLUS, game gets GAME_TIME_PER_PLAYER × n
 """
 from __future__ import annotations
 
@@ -66,12 +76,17 @@ class RoomPlayer:
     player_id: str
     player_name: str
     ws: WebSocket
-    team_id: str | None = None  # set when game starts for team modes
+    team_id: str | None = None      # set when game starts for team modes
+    connected: bool = True           # False while WS is broken
+    skip_turns: int = 0              # auto-skipped turns while disconnected
+    disconnected_at: float | None = None  # monotonic time of disconnect
 
 
 @dataclass
 class Room:
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8].upper())
+    name: str = ""                    # human-readable room name (set by creator)
+    password: str = ""               # optional per-room password
     mode: GameMode = GameMode.LOCAL_1V1
     max_players: int = 2
     players: list[RoomPlayer] = field(default_factory=list)
@@ -90,6 +105,12 @@ class Room:
 
     def get_player(self, token: str) -> RoomPlayer | None:
         return next((p for p in self.players if p.token == token), None)
+
+    def get_player_by_name(self, name: str) -> RoomPlayer | None:
+        return next((p for p in self.players if p.player_name == name), None)
+
+    def get_room_player_for_game_id(self, player_id: str) -> RoomPlayer | None:
+        return next((p for p in self.players if p.player_id == player_id), None)
 
 
 _rooms: dict[str, Room] = {}
@@ -120,11 +141,12 @@ class ConnectionManager:
 
     async def broadcast_room(self, room: Room, data: dict) -> None:
         for rp in room.players:
-            await self.send(rp.token, data)
+            if rp.connected:
+                await self.send(rp.token, data)
 
     async def broadcast_team(self, room: Room, team_id: str, data: dict) -> None:
         for rp in room.players:
-            if rp.team_id == team_id:
+            if rp.team_id == team_id and rp.connected:
                 await self.send(rp.token, data)
 
 
@@ -237,6 +259,8 @@ async def _handle_message(
         await _handle_create_room(ws, token, player_name, msg)
     elif msg_type == "join_room":
         await _handle_join_room(ws, token, player_name, msg)
+    elif msg_type == "rejoin_room":
+        await _handle_rejoin_room(ws, token, player_name, msg)
     elif msg_type == "leave_room":
         await _handle_leave_room(ws, token)
     elif msg_type == "list_rooms":
@@ -283,7 +307,10 @@ async def _handle_create_room(ws: WebSocket, token: str, player_name: str, msg: 
         GameMode.ONLINE: 2,
     }.get(mode, 2)
 
-    room = Room(mode=mode, max_players=max_players)
+    room_name = str(msg.get("room_name", "")).strip()[:32] or f"{player_name}'s room"
+    room_password = str(msg.get("room_password", "")).strip()[:64]
+
+    room = Room(mode=mode, max_players=max_players, name=room_name, password=room_password)
     room_player = RoomPlayer(token=token, player_id=str(uuid.uuid4()), player_name=player_name, ws=ws)
     room.players.append(room_player)
     _rooms[room.id] = room
@@ -291,8 +318,10 @@ async def _handle_create_room(ws: WebSocket, token: str, player_name: str, msg: 
     await ws.send_text(json.dumps({
         "type": "room_created",
         "room_id": room.id,
+        "room_name": room.name,
         "mode": mode.value,
         "max_players": max_players,
+        "has_password": bool(room.password),
         "players": [{"name": p.player_name} for p in room.players],
     }))
 
@@ -303,12 +332,26 @@ async def _handle_join_room(ws: WebSocket, token: str, player_name: str, msg: di
     if room is None:
         await _send_error(ws, "room_not_found", "Room not found")
         return
+
+    # Allow reconnect: same player_name that is currently disconnected
+    existing = room.get_player_by_name(player_name)
+    if existing and not existing.connected:
+        await _do_reconnect(ws, token, existing, room)
+        return
+
     if room.is_full():
         await _send_error(ws, "room_full", "Room is full")
         return
     if room.get_player(token):
         await _send_error(ws, "already_in_room", "You are already in this room")
         return
+
+    # Validate per-room password
+    if room.password:
+        join_password = str(msg.get("room_password", "")).strip()
+        if join_password != room.password:
+            await _send_error(ws, "wrong_room_password", "Incorrect room password")
+            return
 
     room_player = RoomPlayer(token=token, player_id=str(uuid.uuid4()), player_name=player_name, ws=ws)
     room.players.append(room_player)
@@ -318,9 +361,48 @@ async def _handle_join_room(ws: WebSocket, token: str, player_name: str, msg: di
     await manager.broadcast_room(room, {
         "type": "player_joined",
         "room_id": room.id,
+        "room_name": room.name,
         "players": player_list,
         "ready": room.is_full(),
     })
+
+
+async def _handle_rejoin_room(ws: WebSocket, token: str, player_name: str, msg: dict) -> None:
+    """Explicit rejoin: client knows they were in a game and sends this after reconnecting."""
+    room_id = msg.get("room_id", "").upper()
+    room = _rooms.get(room_id)
+    if room is None:
+        await _send_error(ws, "room_not_found", "Room not found or expired")
+        return
+    existing = room.get_player_by_name(player_name)
+    if existing is None:
+        await _send_error(ws, "not_in_room", "You were not in this room")
+        return
+    if existing.connected:
+        await _send_error(ws, "already_connected", "You are already connected to this room")
+        return
+    await _do_reconnect(ws, token, existing, room)
+
+
+async def _do_reconnect(ws: WebSocket, new_token: str, rp: RoomPlayer, room: Room) -> None:
+    """Transfer a disconnected RoomPlayer to the new WebSocket + token."""
+    old_token = rp.token
+    manager.unregister(old_token)   # ensure old entry gone (usually already removed)
+    rp.token = new_token
+    rp.ws = ws
+    rp.connected = True
+    rp.skip_turns = 0
+    rp.disconnected_at = None
+    manager.register(new_token, ws)
+    room.touch()
+
+    await manager.broadcast_room(room, {
+        "type": "player_reconnected",
+        "player_name": rp.player_name,
+    })
+    # Send full game state to the reconnected player
+    if room.state:
+        await manager.send(new_token, {"type": "game_state", "state": _safe_state(room.state)})
 
 
 async def _handle_leave_room(ws: WebSocket, token: str) -> None:
@@ -341,7 +423,15 @@ async def _handle_leave_room(ws: WebSocket, token: str) -> None:
 
 async def _handle_list_rooms(ws: WebSocket) -> None:
     visible = [
-        {"room_id": r.id, "mode": r.mode.value, "players": len(r.players), "max_players": r.max_players}
+        {
+            "room_id": r.id,
+            "room_name": r.name,
+            "mode": r.mode.value,
+            "players": len([p for p in r.players if p.connected]),
+            "max_players": r.max_players,
+            "has_password": bool(r.password),
+            "in_game": r.state is not None,
+        }
         for r in _rooms.values()
         if not r.is_idle()
     ]
@@ -362,6 +452,12 @@ async def _handle_start_game(ws: WebSocket, token: str, msg: dict) -> None:
 
     player_names = [p.player_name for p in room.players]
     state = init_game(mode=room.mode, player_names=player_names)
+
+    # Scale timers for >2 players
+    n = len(room.players)
+    if n > 2:
+        state.timer_config["player_time_limit"] = settings.player_time_2plus
+        state.timer_config["game_time_limit"] = settings.game_time_per_player * n
 
     # Map room player ids to game player ids and assign team info for chat
     for rp, gp in zip(room.players, state.players):
@@ -460,6 +556,10 @@ async def _handle_turn_ready(ws: WebSocket, token: str) -> None:
     if state.is_finished() or state.timer.turn_active:
         return  # already running or game over
 
+    cfg = state.timer_config
+    player_time = float(cfg.get("player_time_limit", settings.player_time_limit))
+    game_time = float(cfg.get("game_time_limit", settings.game_time_limit))
+
     state.timer.turn_start = time.time()
     state.timer.turn_active = True
     room.state = state
@@ -467,10 +567,8 @@ async def _handle_turn_ready(ws: WebSocket, token: str) -> None:
     await manager.broadcast_room(room, {
         "type": "timer_update",
         "turn_remaining": float(settings.turn_time_limit),
-        "player_remaining": float(settings.player_time_limit)
-            - state.timer.player_time_used.get(state.active_player().id, 0.0),
-        "game_remaining": float(settings.game_time_limit)
-            - (time.time() - (state.timer.game_start or time.time())),
+        "player_remaining": player_time - state.timer.player_time_used.get(state.active_player().id, 0.0),
+        "game_remaining": game_time - (time.time() - (state.timer.game_start or time.time())),
         "active_player_id": state.active_player().id,
         "countdown_active": False,
     })
@@ -516,9 +614,8 @@ async def _handle_chat_team(ws: WebSocket, token: str, player_name: str, msg: di
         "text": text,
         "ts": time.time(),
     }
-    # Send only to teammates (same team_id)
     for rp in room.players:
-        if rp.team_id == sender.team_id:
+        if rp.team_id == sender.team_id and rp.connected:
             await manager.send(rp.token, payload)
 
 
@@ -543,6 +640,10 @@ async def _handle_reaction(ws: WebSocket, token: str, player_name: str, msg: dic
     })
 
 
+# ---------------------------------------------------------------------------
+# Per-room timer task
+# ---------------------------------------------------------------------------
+
 async def _room_timer_task(room_id: str) -> None:
     """Per-room background task: enforces turn/player/game time limits for online mode."""
     try:
@@ -554,10 +655,14 @@ async def _room_timer_task(room_id: str) -> None:
 
             state = room.state
             timer = state.timer
+            cfg = state.timer_config
             now = time.time()
 
+            player_time_limit = float(cfg.get("player_time_limit", settings.player_time_limit))
+            game_time_limit = float(cfg.get("game_time_limit", settings.game_time_limit))
+
             # 1. Game time limit
-            if timer.game_start and (now - timer.game_start) >= settings.game_time_limit:
+            if timer.game_start and (now - timer.game_start) >= game_time_limit:
                 state = _force_game_timeout(state)
                 room.state = state
                 await manager.broadcast_room(room, {"type": "game_state", "state": _safe_state(state)})
@@ -570,8 +675,6 @@ async def _room_timer_task(room_id: str) -> None:
 
             # 2. Auto-start clock after animation_grace_seconds if client never sent turn_ready
             if not timer.turn_active and timer.turn_start is None and timer.game_start:
-                game_elapsed = now - timer.game_start
-                # Use last_activity as proxy for when the turn began
                 turn_idle = time.monotonic() - room.last_activity
                 if turn_idle >= settings.animation_grace_seconds:
                     timer.turn_start = now - turn_idle + settings.animation_grace_seconds
@@ -580,16 +683,67 @@ async def _room_timer_task(room_id: str) -> None:
             if not timer.turn_active or timer.turn_start is None:
                 continue
 
-            # 3. Compute elapsed / remaining
-            turn_elapsed = now - timer.turn_start
+            # 3. Check if active player is disconnected
             active = state.active_player()
+            rp_active = room.get_room_player_for_game_id(active.id)
+            is_disconnected = rp_active is not None and not rp_active.connected
+
+            turn_elapsed = now - timer.turn_start
+
+            if is_disconnected:
+                # Broadcast reconnect countdown
+                seconds_left = max(0.0, settings.disconnect_skip_seconds - turn_elapsed)
+                await manager.broadcast_room(room, {
+                    "type": "player_disconnected_waiting",
+                    "player_name": active.name,
+                    "seconds_remaining": round(seconds_left, 1),
+                    "skips_used": rp_active.skip_turns if rp_active else 0,
+                    "skips_max": settings.disconnect_max_skips,
+                })
+
+                if turn_elapsed >= settings.disconnect_skip_seconds:
+                    skip_count = (rp_active.skip_turns + 1) if rp_active else settings.disconnect_max_skips
+                    if rp_active:
+                        rp_active.skip_turns += 1
+
+                    if skip_count >= settings.disconnect_max_skips:
+                        # Auto-lose: player was absent too long
+                        state = _finish_by_timeout(state, active.id, reason="player_disconnected")
+                        room.state = state
+                        await manager.broadcast_room(room, {"type": "game_state", "state": _safe_state(state)})
+                        await manager.broadcast_room(room, {
+                            "type": "game_over",
+                            "result": state.result.model_dump() if state.result else {},
+                            "reason": "player_disconnected",
+                            "player_name": active.name,
+                        })
+                        return
+                    else:
+                        # Auto-advance this turn (skip)
+                        state = await _auto_advance_turn(room, state, active)
+                        room.state = state
+                        await manager.broadcast_room(room, {
+                            "type": "timer_event",
+                            "event": "turn_skipped_disconnected",
+                            "player_name": active.name,
+                            "skips_remaining": settings.disconnect_max_skips - skip_count,
+                        })
+                        await manager.broadcast_room(room, {"type": "game_state", "state": _safe_state(state)})
+                        if state.is_finished():
+                            await manager.broadcast_room(room, {
+                                "type": "game_over",
+                                "result": state.result.model_dump() if state.result else {},
+                            })
+                            return
+                continue  # skip normal timer processing for disconnected player
+
+            # 4. Compute remaining for connected player
             player_used_total = timer.player_time_used.get(active.id, 0.0) + turn_elapsed
-
             turn_remaining = settings.turn_time_limit - turn_elapsed
-            player_remaining = settings.player_time_limit - player_used_total
-            game_remaining = settings.game_time_limit - (now - (timer.game_start or now))
+            player_remaining = player_time_limit - player_used_total
+            game_remaining = game_time_limit - (now - (timer.game_start or now))
 
-            # 4. Broadcast live timer update
+            # 5. Broadcast live timer update
             await manager.broadcast_room(room, {
                 "type": "timer_update",
                 "turn_remaining": max(0.0, round(turn_remaining, 1)),
@@ -599,9 +753,9 @@ async def _room_timer_task(room_id: str) -> None:
                 "countdown_active": 0 < turn_remaining <= settings.turn_countdown_threshold,
             })
 
-            # 5. Player time warnings
+            # 6. Player time warnings
             fractions = settings.player_warning_fractions_list
-            fraction_used = player_used_total / settings.player_time_limit if settings.player_time_limit > 0 else 1.0
+            fraction_used = player_used_total / player_time_limit if player_time_limit > 0 else 1.0
             already_sent = timer.player_warnings_sent.get(active.id, [])
             for frac in fractions:
                 if fraction_used >= frac and frac not in already_sent:
@@ -618,7 +772,7 @@ async def _room_timer_task(room_id: str) -> None:
                         "message": f"{active.name} has used {pct}% of their time ({_fmt_time(player_remaining)} remaining)",
                     })
 
-            # 6. Player time limit exceeded → player loses
+            # 7. Player time limit exceeded → player loses
             if player_remaining <= 0:
                 state = _finish_by_timeout(state, active.id, reason="player_time_expired")
                 room.state = state
@@ -631,7 +785,7 @@ async def _room_timer_task(room_id: str) -> None:
                 })
                 return
 
-            # 7. Turn time limit exceeded → auto-advance
+            # 8. Turn time limit exceeded → auto-advance
             if turn_remaining <= 0:
                 state = await _auto_advance_turn(room, state, active)
                 room.state = state
@@ -651,7 +805,6 @@ async def _room_timer_task(room_id: str) -> None:
 
 async def _auto_advance_turn(room: Room, state: GameState, active: Player) -> GameState:
     """Force-advance a timed-out turn: auto-play cards or auto-recruit."""
-    # Record time used for this player
     if state.timer.turn_start:
         elapsed = time.time() - state.timer.turn_start
         state.timer.player_time_used[active.id] = (
@@ -690,10 +843,8 @@ async def _auto_advance_turn(room: Room, state: GameState, active: Player) -> Ga
 def _get_auto_recruiter_id(state: GameState) -> str | None:
     if state.pending_play is None:
         return None
-    # FFA: target is the recruiter
     if state.pending_play.target_id:
         return state.pending_play.target_id
-    # 1v1 / solo: any non-actor alive player
     actor_id = state.pending_play.actor_id
     for p in state.players:
         if p.id != actor_id and not p.eliminated:
@@ -703,11 +854,11 @@ def _get_auto_recruiter_id(state: GameState) -> str | None:
 
 def _finish_by_timeout(state: GameState, timed_out_player_id: str, reason: str) -> GameState:
     from app.game.models import EndReason, GameResult
-    other = next((p for p in state.players if p.id != timed_out_player_id), None)
+    other = next((p for p in state.players if p.id != timed_out_player_id and not p.eliminated), None)
     state.result = GameResult(
         winner_id=other.id if other else None,
         loser_id=timed_out_player_id,
-        reason=EndReason.OUT_OF_CARDS,  # closest available reason; frontend reads reason from event
+        reason=EndReason.OUT_OF_CARDS,
     )
     state.phase = GamePhase.FINISHED
     return state
@@ -743,15 +894,38 @@ def _cancel_room_timer(room_id: str) -> None:
 
 
 async def _handle_disconnect(token: str) -> None:
+    """Called when a WebSocket disconnects. During active games, keep the player in the room."""
     room = _find_room_by_token(token)
     if room is None:
         return
-    room.players = [p for p in room.players if p.token != token]
-    if room.players:
-        await manager.broadcast_room(room, {"type": "player_disconnected"})
+
+    rp = room.get_player(token)
+    if rp is None:
+        return
+
+    if room.state is not None and not room.state.is_finished():
+        # Game in progress — mark disconnected but keep in room for potential rejoin
+        rp.connected = False
+        rp.disconnected_at = time.monotonic()
+        # manager.unregister already called by the caller (websocket_endpoint finally block)
+        await manager.broadcast_room(room, {
+            "type": "player_disconnected",
+            "player_name": rp.player_name,
+            "can_rejoin": True,
+            "skips_remaining": settings.disconnect_max_skips - rp.skip_turns,
+        })
     else:
-        _cancel_room_timer(room.id)
-        _rooms.pop(room.id, None)
+        # No game or game finished — clean up normally
+        room.players = [p for p in room.players if p.token != token]
+        if not room.players:
+            _cancel_room_timer(room.id)
+            _rooms.pop(room.id, None)
+        else:
+            await manager.broadcast_room(room, {
+                "type": "player_left",
+                "room_id": room.id,
+                "players": [{"name": p.player_name} for p in room.players],
+            })
 
 
 # ---------------------------------------------------------------------------

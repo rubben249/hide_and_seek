@@ -107,16 +107,18 @@ done
 echo ""
 
 # Open browser — prefer Chrome/Chromium, fall back to system default
-info "Opening Chrome at $URL ..."
+ADMIN_URL="$URL/admin.html"
+info "Opening Chrome: game at $URL and admin panel at $ADMIN_URL ..."
 OPENED=false
 for CHROME_CMD in \
     "google-chrome" "google-chrome-stable" \
     "chromium-browser" "chromium" \
     "microsoft-edge" "microsoft-edge-stable"; do
     if command -v "$CHROME_CMD" &>/dev/null; then
-        "$CHROME_CMD" --new-window "$URL" &>/dev/null &
+        # Open game window first, then admin in a new tab
+        "$CHROME_CMD" --new-window "$URL" "$ADMIN_URL" &>/dev/null &
         OPENED=true
-        ok "Opened with $CHROME_CMD"
+        ok "Opened with $CHROME_CMD (game + admin tabs)"
         break
     fi
 done
@@ -136,6 +138,7 @@ fi
 
 echo ""
 ok "TAG! is running! 🎮"
-echo -e "  URL:        ${CYAN}$URL${NC}"
+echo -e "  Game:       ${CYAN}$URL${NC}"
+echo -e "  Admin:      ${CYAN}$URL/admin.html${NC}"
 echo -e "  Logs:       ${CYAN}$COMPOSE logs -f${NC}"
 echo -e "  Stop:       ${CYAN}$COMPOSE down${NC}"

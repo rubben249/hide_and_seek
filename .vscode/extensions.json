@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "esbenp.prettier-vscode",
+    "eamodio.gitlens",
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

@@ -296,9 +296,11 @@ export function makeCardEl(cardName, copiesInPlay = 0, opts = {}) {
   }).join("");
 
   el.innerHTML = `
-    <div class="card-name">${cardName}</div>
-    <div class="card-icon">${icon}</div>
-    <div class="card-values">${valHtml}</div>
+    <div class="card-art">${icon}</div>
+    <div class="card-body">
+      <div class="card-name">${cardName}</div>
+      <div class="card-values">${valHtml}</div>
+    </div>
   `;
 
   // State-based glow for recruited cards

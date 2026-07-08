@@ -91,8 +91,13 @@ export class GameSocket {
     this._ws.send(JSON.stringify({ type, token: this.token, ...payload }));
   }
 
-  createRoom(mode) { this.send("create_room", { mode }); }
-  joinRoom(roomId) { this.send("join_room", { room_id: roomId }); }
+  createRoom(mode, roomName = "", roomPassword = "") {
+    this.send("create_room", { mode, room_name: roomName, room_password: roomPassword });
+  }
+  joinRoom(roomId, roomPassword = "") {
+    this.send("join_room", { room_id: roomId, room_password: roomPassword });
+  }
+  rejoinRoom(roomId) { this.send("rejoin_room", { room_id: roomId }); }
   leaveRoom() { this.send("leave_room"); }
   listRooms() { this.send("list_rooms"); }
   startGame() { this.send("start_game"); }
