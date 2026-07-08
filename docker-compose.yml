@@ -1,0 +1,18 @@
+services:
+  game:
+    build:
+      context: .          # build context = pilla_pilla/ (includes both backend/ and frontend/)
+      dockerfile: backend/Dockerfile
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

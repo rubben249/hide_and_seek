@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TAG! — The Playground Chase</title>
+  <link rel="stylesheet" href="/css/styles.css"/>
+</head>
+<body>
+
+<!-- ============================================================
+     MAIN MENU
+============================================================ -->
+<div id="screen-menu" class="screen active">
+  <h1 class="title">TAG!</h1>
+  <p class="subtitle">The Playground Chase</p>
+  <div class="menu">
+    <button id="btn-solo" class="btn btn-primary">🤖 Solo vs AI</button>
+    <button id="btn-local" class="btn btn-secondary">👥 Local Multiplayer</button>
+    <button id="btn-online" class="btn btn-outline">🌐 Online</button>
+  </div>
+  <p style="margin-top:32px;font-size:.75rem;color:#aaa;">Inspired by Agent Avenue · For 2-4 players</p>
+</div>
+
+<!-- ============================================================
+     SOLO MODE SETUP
+============================================================ -->
+<div id="screen-solo" class="screen">
+  <h1 class="title">Solo Mode</h1>
+  <p class="subtitle">You vs the AI</p>
+
+  <div class="form-section">
+    <h3>Your settings</h3>
+    <div class="form-group">
+      <label>Your name</label>
+      <input id="solo-name" type="text" placeholder="Player" value="Player"/>
+    </div>
+    <div class="form-group">
+      <label>AI Difficulty</label>
+      <select id="solo-difficulty">
+        <option value="beginner">🟢 Beginner — random play</option>
+        <option value="veteran" selected>🟡 Veteran — 1-turn lookahead</option>
+        <option value="maestro">🔴 Maestro — deep strategy (2-3 turns)</option>
+      </select>
+    </div>
+    <p style="font-size:.8rem;color:#7a6a45;">
+      The AI only sees public information — it never cheats by looking at your hand.
+    </p>
+  </div>
+
+  <div class="menu">
+    <button id="btn-start-solo" class="btn btn-primary">Start Game</button>
+    <button class="btn btn-outline btn-back">← Back</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     LOCAL MODE SETUP
+============================================================ -->
+<div id="screen-local" class="screen">
+  <h1 class="title">Local Mode</h1>
+  <p class="subtitle">Hot-seat on one screen</p>
+
+  <div class="form-section">
+    <h3>Game mode</h3>
+    <div class="form-group">
+      <label>Mode</label>
+      <select id="local-mode">
+        <option value="local_1v1">1v1 — Two players</option>
+        <option value="local_2v2">2v2 — Teams</option>
+        <option value="local_2v1">2v1 — Team vs Solo (solo gets 4 discards)</option>
+        <option value="local_ffa">FFA — 4 players free-for-all (attack freely)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Player names</label>
+      <div id="local-players-inputs" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+
+  <div class="form-section" style="background:#fffaec;">
+    <h3>📖 2v1 rules</h3>
+    <p style="font-size:.8rem;color:#7a6a45;">
+      The solo player gets <strong>4 discards</strong> total. Each teammate gets <strong>2 discards</strong>.
+      The team shares one pawn and one pool of recruited cards. Each teammate has their own hand.
+    </p>
+  </div>
+
+  <div class="form-section" style="background:#fffaec;">
+    <h3>📖 FFA rules</h3>
+    <p style="font-size:.8rem;color:#7a6a45;">
+      Each turn: choose a target, play 2 cards. Target picks 1 card; you keep the other. Only you and your target move.
+      Win by catching any opponent or collecting 3 Masterminds. 3 Show-offs = eliminated!
+    </p>
+  </div>
+
+  <div class="menu">
+    <button id="btn-start-local" class="btn btn-primary">Start Game</button>
+    <button class="btn btn-outline btn-back">← Back</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     ONLINE MODE
+============================================================ -->
+<div id="screen-online" class="screen">
+  <h1 class="title">Online</h1>
+  <p class="subtitle">Play with friends over the network</p>
+
+  <div id="online-connect-form" class="form-section">
+    <h3>🔐 Connect to server</h3>
+    <div class="form-group">
+      <label>Your name</label>
+      <input id="online-name" type="text" placeholder="Player" value="Player"/>
+    </div>
+    <div class="form-group">
+      <label>Server password</label>
+      <input id="online-password" type="password" placeholder="Ask the host for the password"/>
+    </div>
+    <button id="btn-connect" class="btn btn-primary">Connect</button>
+  </div>
+
+  <div id="online-lobby" class="form-section hidden">
+    <h3>🏠 Lobby</h3>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:140px;">
+        <label>Mode</label>
+        <select id="online-mode">
+          <option value="local_1v1">1v1</option>
+          <option value="local_2v2">2v2</option>
+          <option value="local_ffa">FFA 4p</option>
+        </select>
+      </div>
+      <button id="btn-create-room" class="btn btn-primary btn-sm">Create Room</button>
+    </div>
+
+    <hr class="divider"/>
+
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:140px;">
+        <label>Room code</label>
+        <input id="online-room-code" type="text" placeholder="ABCD" maxlength="8" style="text-transform:uppercase;"/>
+      </div>
+      <button id="btn-join-room" class="btn btn-secondary btn-sm">Join Room</button>
+    </div>
+
+    <div id="online-room-id-display" style="font-size:1.2rem;font-weight:900;color:#2d7a45;text-align:center;padding:8px 0;"></div>
+
+    <button id="btn-start-online" class="btn btn-primary w-full">▶ Start Game</button>
+
+    <hr class="divider"/>
+    <label style="font-size:.8rem;color:#7a6a45;">Server log</label>
+    <div id="chat-log"></div>
+  </div>
+
+  <div class="menu" style="max-width:480px;">
+    <button class="btn btn-outline btn-back">← Back</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     GAME SCREEN
+============================================================ -->
+<div id="screen-game" class="screen">
+  <div id="status-bar">Loading...</div>
+
+  <!-- Timer bar -->
+  <div id="timer-bar">
+    <div class="timer-cell" id="timer-turn-cell">
+      <span class="timer-label">Turn</span>
+      <span id="timer-turn-display" class="timer-value">2:00</span>
+    </div>
+    <div class="timer-cell timer-players" id="timer-players-cell">
+      <!-- filled by JS: one block per player -->
+    </div>
+    <div class="timer-cell" id="timer-game-cell">
+      <span class="timer-label">Game</span>
+      <span id="timer-game-display" class="timer-value">30:00</span>
+    </div>
+  </div>
+
+  <!-- Timer warning banner -->
+  <div id="timer-warning" class="timer-warning hidden"></div>
+
+  <div id="board-container"></div>
+
+  <div class="deck-info" id="deck-info">Deck: — cards</div>
+
+  <div id="pending-area" style="width:100%;max-width:900px;margin:12px auto;text-align:center;"></div>
+
+  <div id="actions"></div>
+
+  <div id="players-area" style="width:100%;max-width:900px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;"></div>
+
+  <div style="margin-top:16px;">
+    <button class="btn btn-outline btn-sm btn-back">⬅ Quit to Menu</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     RESULT SCREEN
+============================================================ -->
+<div id="screen-result" class="screen">
+  <div id="result-box">
+    <h2 id="result-winner">🏆 Player wins!</h2>
+    <p id="result-reason"></p>
+    <button id="btn-play-again" class="btn btn-primary w-full">Play Again</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     PASS SCREEN OVERLAY (hot-seat)
+============================================================ -->
+<div id="pass-overlay">
+  <h2>Pass the device!</h2>
+  <p>Next player: <strong id="pass-player-name"></strong></p>
+  <p style="font-size:.85rem;">Don't look at the screen until it's your turn!</p>
+  <button id="btn-pass-confirm" class="btn btn-primary">I'm ready →</button>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

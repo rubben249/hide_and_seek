@@ -1,0 +1,711 @@
+/* ============================================================
+   app.js — Main controller: screen routing, API calls, game flow
+   ============================================================ */
+import { renderBoard, renderHand, renderRecruited, makeCardEl } from "./game.js";
+import { GameSocket } from "./ws.js";
+
+const API = "";  // same origin
+
+// ---- State ----
+let gameId = null;
+let myPlayerId = null;
+let gameState = null;
+let selectedFaceUp = null;
+let selectedFaceDown = null;
+let socket = null;
+let onlineMyToken = null;
+let onlineMyPlayerId = null;
+
+// ---- Timer state (local/solo mode — client-side tracking) ----
+const timer = {
+  interval: null,        // setInterval handle
+  turnStart: null,       // Date.now() when current turn started
+  activePlayerId: null,  // player whose turn clock is running
+  playerTimeUsed: {},    // player_id → ms of cumulative time used
+  warningsSent: {},      // player_id → [fractions already warned]
+  config: null,          // timer_config from game state
+  warningTimeout: null,  // hide-warning timeout handle
+};
+
+function timerFmt(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function timerStartTurn(activePlayerId, config) {
+  timerStop();
+  timer.config = config;
+  timer.turnStart = Date.now();
+  timer.activePlayerId = activePlayerId;
+  timer.interval = setInterval(() => timerTick(), 1000);
+  timerTick(); // immediate first draw
+}
+
+function timerStop() {
+  if (timer.interval) { clearInterval(timer.interval); timer.interval = null; }
+  if (timer.activePlayerId && timer.turnStart !== null) {
+    const elapsed = (Date.now() - timer.turnStart) / 1000;
+    timer.playerTimeUsed[timer.activePlayerId] =
+      (timer.playerTimeUsed[timer.activePlayerId] || 0) + elapsed;
+  }
+  timer.turnStart = null;
+  timer.activePlayerId = null;
+}
+
+function timerReset() {
+  timerStop();
+  timer.playerTimeUsed = {};
+  timer.warningsSent = {};
+  timer.config = null;
+  timerRenderBar(null, null, null, null);
+}
+
+function timerTick() {
+  if (!timer.config || timer.turnStart === null) return;
+  const cfg = timer.config;
+  const now = Date.now();
+  const turnElapsed = (now - timer.turnStart) / 1000;
+  const turnRemaining = cfg.turn_time_limit - turnElapsed;
+  const pid = timer.activePlayerId;
+  const playerUsed = (timer.playerTimeUsed[pid] || 0) + turnElapsed;
+  const playerRemaining = cfg.player_time_limit - playerUsed;
+  const gameElapsed = gameState?.timer?.game_start
+    ? (now / 1000) - gameState.timer.game_start : 0;
+  const gameRemaining = cfg.game_time_limit - gameElapsed;
+
+  timerRenderBar(turnRemaining, playerRemaining, gameRemaining, pid);
+  timerCheckWarnings(pid, playerUsed, playerRemaining, cfg);
+}
+
+function timerRenderBar(turnRemaining, playerRemaining, gameRemaining, activePid) {
+  const turnEl = document.getElementById("timer-turn-display");
+  const gameEl = document.getElementById("timer-game-display");
+  const playersEl = document.getElementById("timer-players-cell");
+  if (!turnEl || !gameEl || !playersEl) return;
+
+  const cfg = timer.config;
+  const threshold = cfg?.turn_countdown_threshold ?? 30;
+
+  if (turnRemaining !== null) {
+    turnEl.textContent = timerFmt(turnRemaining);
+    turnEl.className = "timer-value" + (turnRemaining <= threshold ? " countdown" : "");
+  } else {
+    turnEl.textContent = timerFmt(cfg?.turn_time_limit ?? 120);
+    turnEl.className = "timer-value";
+  }
+
+  if (gameRemaining !== null) {
+    gameEl.textContent = timerFmt(gameRemaining);
+  }
+
+  // Per-player mini blocks
+  if (gameState && cfg) {
+    playersEl.innerHTML = "";
+    gameState.players.filter(p => !p.eliminated).forEach(p => {
+      const used = (timer.playerTimeUsed[p.id] || 0) + (p.id === activePid && turnRemaining !== null
+        ? (cfg.turn_time_limit - Math.max(0, turnRemaining)) : 0);
+      const remaining = Math.max(0, cfg.player_time_limit - used);
+      const frac = used / cfg.player_time_limit;
+      const cls = frac >= 0.75 ? "low" : frac >= 0.5 ? "med" : "ok";
+      const block = document.createElement("div");
+      block.className = "player-timer";
+      block.innerHTML = `<span class="player-timer-name">${p.name.slice(0, 10)}</span>
+        <span class="player-timer-value ${cls}">${timerFmt(remaining)}</span>`;
+      playersEl.appendChild(block);
+    });
+  }
+}
+
+function timerCheckWarnings(pid, playerUsed, playerRemaining, cfg) {
+  const fractions = cfg.player_warning_fractions ?? [0.25, 0.5, 0.75];
+  const fracUsed = playerUsed / cfg.player_time_limit;
+  const sent = timer.warningsSent[pid] || [];
+  for (const frac of fractions) {
+    if (fracUsed >= frac && !sent.includes(frac)) {
+      sent.push(frac);
+      timer.warningsSent[pid] = sent;
+      const pct = Math.round(frac * 100);
+      const name = gameState?.players?.find(p => p.id === pid)?.name ?? "Player";
+      const isDanger = frac >= 0.75;
+      showTimerWarning(
+        `⏱ ${name} has used ${pct}% of their time — ${timerFmt(playerRemaining)} remaining`,
+        isDanger
+      );
+    }
+  }
+}
+
+function showTimerWarning(msg, danger = false) {
+  const el = document.getElementById("timer-warning");
+  if (!el) return;
+  if (timer.warningTimeout) clearTimeout(timer.warningTimeout);
+  el.textContent = msg;
+  el.className = "timer-warning" + (danger ? " danger" : "");
+  el.classList.remove("hidden");
+  timer.warningTimeout = setTimeout(() => el.classList.add("hidden"), 5000);
+}
+
+// Called when server sends timer_update (online mode) or timer_warning
+function timerApplyServerUpdate(msg) {
+  timerRenderBar(msg.turn_remaining, msg.player_remaining, msg.game_remaining, msg.active_player_id);
+  // Sync server player times into local tracking so player blocks stay accurate
+  if (gameState && msg.active_player_id && msg.player_remaining !== undefined) {
+    const cfg = gameState.timer_config;
+    if (cfg) {
+      timer.playerTimeUsed[msg.active_player_id] =
+        cfg.player_time_limit - msg.player_remaining;
+    }
+  }
+}
+
+// Track which player's turn was last rendered (to detect turn changes)
+let lastRenderedActivePlayerId = null;
+
+// ---- Screen management ----
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id)?.classList.add("active");
+}
+
+// ---- API helpers ----
+async function api(path, body = null) {
+  const opts = body
+    ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    : { method: "GET" };
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "API error");
+  }
+  return res.json();
+}
+
+// ---- Status bar ----
+function setStatus(msg, color = "#2d7a45") {
+  const bar = document.getElementById("status-bar");
+  if (bar) { bar.textContent = msg; bar.style.background = color; }
+}
+
+// ---- Main menu ----
+document.getElementById("btn-solo")?.addEventListener("click", () => show("screen-solo"));
+document.getElementById("btn-local")?.addEventListener("click", () => show("screen-local"));
+document.getElementById("btn-online")?.addEventListener("click", () => show("screen-online"));
+
+// ---- Back buttons ----
+document.querySelectorAll(".btn-back").forEach(btn => {
+  btn.addEventListener("click", () => show("screen-menu"));
+});
+
+// ============================================================
+// SOLO MODE
+// ============================================================
+document.getElementById("btn-start-solo")?.addEventListener("click", async () => {
+  const name = document.getElementById("solo-name").value.trim() || "Player";
+  const diff = document.getElementById("solo-difficulty").value;
+  try {
+    const data = await api("/api/solo/new", { player_name: name, difficulty: diff });
+    gameId = data.game_id;
+    gameState = data.state;
+    myPlayerId = gameState.players.find(p => p.type === "human")?.id;
+    show("screen-game");
+    renderGameScreen();
+  } catch (e) { alert(e.message); }
+});
+
+// ============================================================
+// LOCAL MODE
+// ============================================================
+const localModeSelect = document.getElementById("local-mode");
+const localPlayersDiv = document.getElementById("local-players-inputs");
+
+localModeSelect?.addEventListener("change", buildLocalPlayerInputs);
+function buildLocalPlayerInputs() {
+  const mode = localModeSelect.value;
+  const counts = { "local_1v1": 2, "local_2v2": 4, "local_2v1": 3, "local_ffa": 4 };
+  const count = counts[mode] || 2;
+  localPlayersDiv.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.placeholder = `Player ${i + 1} name`;
+    inp.value = `Player ${i + 1}`;
+    inp.id = `local-player-${i}`;
+    localPlayersDiv.appendChild(inp);
+  }
+}
+buildLocalPlayerInputs();
+
+document.getElementById("btn-start-local")?.addEventListener("click", async () => {
+  const mode = localModeSelect.value;
+  const counts = { "local_1v1": 2, "local_2v2": 4, "local_2v1": 3, "local_ffa": 4 };
+  const count = counts[mode] || 2;
+  const names = Array.from({ length: count }, (_, i) =>
+    (document.getElementById(`local-player-${i}`)?.value.trim()) || `Player ${i + 1}`
+  );
+  try {
+    const data = await api("/api/local/new", { mode, player_names: names });
+    gameId = data.game_id;
+    gameState = data.state;
+    myPlayerId = gameState.players[0]?.id;
+    show("screen-game");
+    renderGameScreen();
+  } catch (e) { alert(e.message); }
+});
+
+// ============================================================
+// ONLINE MODE
+// ============================================================
+document.getElementById("btn-connect")?.addEventListener("click", async () => {
+  const name = document.getElementById("online-name").value.trim() || "Player";
+  const pass = document.getElementById("online-password").value;
+  if (!pass) { alert("Enter the server password"); return; }
+
+  logOnline(`Connecting as ${name}...`, "system");
+  socket = new GameSocket(handleOnlineMessage, () => logOnline("Disconnected", "error"));
+
+  try {
+    await socket.connect(name, pass);
+    logOnline(`Connected! Token issued.`, "system");
+    document.getElementById("online-lobby").classList.remove("hidden");
+    document.getElementById("online-connect-form").classList.add("hidden");
+    socket.listRooms();
+  } catch (e) {
+    logOnline(`Error: ${e.message}`, "error");
+    socket = null;
+  }
+});
+
+document.getElementById("btn-create-room")?.addEventListener("click", () => {
+  const mode = document.getElementById("online-mode").value;
+  socket?.createRoom(mode);
+});
+
+document.getElementById("btn-join-room")?.addEventListener("click", () => {
+  const code = document.getElementById("online-room-code").value.trim().toUpperCase();
+  if (!code) { alert("Enter a room code"); return; }
+  socket?.joinRoom(code);
+});
+
+document.getElementById("btn-start-online")?.addEventListener("click", () => {
+  socket?.startGame();
+});
+
+function handleOnlineMessage(msg) {
+  logOnline(JSON.stringify(msg).substring(0, 120), "system");
+  if (msg.type === "room_created") {
+    logOnline(`Room created: ${msg.room_id}`, "system");
+    document.getElementById("online-room-id-display").textContent = msg.room_id;
+  } else if (msg.type === "player_joined") {
+    logOnline(`${msg.players.map(p => p.name).join(", ")} in room`, "system");
+    if (msg.ready) logOnline("Room full! Start when ready.", "system");
+  } else if (msg.type === "game_started") {
+    gameState = msg.state;
+    onlineMyPlayerId = gameState.players.find(p => p.name === socket.playerName)?.id;
+    myPlayerId = onlineMyPlayerId;
+    show("screen-game");
+    renderGameScreen();
+  } else if (msg.type === "game_state") {
+    gameState = msg.state;
+    renderGameScreen();
+  } else if (msg.type === "game_over") {
+    timerStop();
+    showResult(msg.result);
+  } else if (msg.type === "timer_update") {
+    timerApplyServerUpdate(msg);
+  } else if (msg.type === "timer_warning") {
+    showTimerWarning(msg.message, msg.fraction_used >= 0.75);
+  } else if (msg.type === "timer_event") {
+    if (msg.event === "turn_timeout") {
+      showTimerWarning(`⏰ ${msg.message}`, true);
+    }
+  } else if (msg.type === "chat_all") {
+    logOnline(`[All] ${msg.from}: ${msg.text}`, "chat");
+  } else if (msg.type === "chat_team") {
+    logOnline(`[Team ${msg.team}] ${msg.from}: ${msg.text}`, "team");
+  } else if (msg.type === "reaction") {
+    logOnline(`${msg.emoji} ${msg.from}`, "reaction");
+  } else if (msg.type === "error") {
+    logOnline(`Server error: ${msg.message}`, "error");
+  }
+}
+
+function logOnline(text, cls = "") {
+  const log = document.getElementById("chat-log");
+  if (!log) return;
+  const line = document.createElement("div");
+  line.className = cls ? `msg-${cls}` : "";
+  line.textContent = `> ${text}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ============================================================
+// GAME SCREEN
+// ============================================================
+function renderGameScreen() {
+  if (!gameState) return;
+  const isOnline = gameState.mode === "online";
+  const players = gameState.players;
+
+  // ---- Timer management ----
+  const cfg = gameState.timer_config;
+  const activePlayer = players[gameState.active_player_index];
+
+  if (gameState.result || gameState.phase === "finished") {
+    timerStop();
+    lastRenderedActivePlayerId = null;
+  } else if (!isOnline && cfg && activePlayer) {
+    // Local/solo: start client-side timer when active player changes
+    if (activePlayer.id !== lastRenderedActivePlayerId) {
+      timerStartTurn(activePlayer.id, cfg);
+      lastRenderedActivePlayerId = activePlayer.id;
+    }
+  } else if (isOnline) {
+    // Online: timer is server-driven via timer_update events; just keep config synced
+    timer.config = cfg;
+    if (!lastRenderedActivePlayerId || activePlayer?.id !== lastRenderedActivePlayerId) {
+      lastRenderedActivePlayerId = activePlayer?.id ?? null;
+      // Send turn_ready after receiving new game state (signals animations done)
+      if (socket && activePlayer) {
+        socket.send("turn_ready", {});
+      }
+    }
+  }
+
+  // Board
+  const boardContainer = document.getElementById("board-container");
+  if (boardContainer) renderBoard(boardContainer, players, gameState.board_size);
+
+  if (gameState.result) {
+    showResult(gameState.result);
+    return;
+  }
+
+  let statusMsg = "";
+  if (phase === "play") statusMsg = isMyTurn ? `Your turn — Play 2 cards` : `${activePlayer?.name}'s turn`;
+  else if (phase === "recruit") {
+    const actor = players.find(p => p.id === gameState.pending_play?.actor_id);
+    const isRecruiter = !isMyTurn || (gameState.pending_play?.actor_id === myPlayerId);
+    statusMsg = isRecruiter
+      ? `${actor?.name} played — choose a card to recruit`
+      : `Waiting for opponent to recruit...`;
+  }
+  else if (phase === "finished") { showResult(gameState.result); return; }
+  else statusMsg = `Phase: ${phase}`;
+
+  setStatus(statusMsg);
+
+  // Render each player's area
+  renderPlayerAreas(players, isMyTurn);
+
+  // Actions
+  renderActions(phase, isMyTurn, players);
+
+  // Deck info
+  const deckInfo = document.getElementById("deck-info");
+  if (deckInfo) deckInfo.textContent = `Deck: ${gameState.deck?.length ?? 0} cards`;
+}
+
+function renderPlayerAreas(players, isMyTurn) {
+  const container = document.getElementById("players-area");
+  if (!container) return;
+  container.innerHTML = "";
+
+  players.forEach((player, idx) => {
+    const isMe = player.id === myPlayerId;
+    const div = document.createElement("div");
+    div.className = "player-area";
+    div.style.borderColor = isMe ? "#2d7a45" : "#c9b882";
+
+    const header = document.createElement("h3");
+    header.textContent = `${player.name}${player.eliminated ? " [OUT]" : ""}${isMe ? " (You)" : ""}`;
+    div.appendChild(header);
+
+    // Position
+    const posInfo = document.createElement("p");
+    posInfo.style.fontSize = ".8rem";
+    posInfo.style.color = "#7a6a45";
+    posInfo.textContent = `Position: ${player.position} | Discards: ${player.discards_used}/${player.max_discards}`;
+    div.appendChild(posInfo);
+
+    // Hand (only show own hand or hidden cards for hot-seat)
+    if (isMe || gameState.mode === "solo") {
+      const handLabel = document.createElement("p");
+      handLabel.style.fontWeight = "700";
+      handLabel.style.fontSize = ".8rem";
+      handLabel.style.marginTop = "8px";
+      handLabel.textContent = "Hand:";
+      div.appendChild(handLabel);
+
+      const handDiv = document.createElement("div");
+      handDiv.className = "hand";
+      handDiv.id = `hand-${player.id}`;
+
+      const hand = isMe ? player.hand : (player.hand || []).map(() => "?");
+      hand.forEach(name => {
+        const isHidden = name === "?";
+        const el = isHidden
+          ? makeCardEl("?", 0, { faceDown: true })
+          : makeCardEl(name, 0, {
+              selectable: isMe && isMyTurn && gameState.phase === "play",
+              onClick: isMe && isMyTurn ? (n, el) => selectHandCard(n, el) : null,
+            });
+        handDiv.appendChild(el);
+      });
+      div.appendChild(handDiv);
+    }
+
+    // Recruited
+    const recLabel = document.createElement("p");
+    recLabel.style.fontWeight = "700";
+    recLabel.style.fontSize = ".8rem";
+    recLabel.style.marginTop = "8px";
+    recLabel.textContent = "Recruited:";
+    div.appendChild(recLabel);
+
+    const recDiv = document.createElement("div");
+    recDiv.className = "recruited-grid";
+    // Group and render
+    const groups = {};
+    (player.recruited || []).forEach(n => { groups[n] = (groups[n]||0)+1; });
+    Object.entries(groups).forEach(([name, cnt]) => {
+      const wrap = document.createElement("div");
+      wrap.style.position = "relative";
+      const card = makeCardEl(name, cnt);
+      wrap.appendChild(card);
+      if (cnt > 1) {
+        const badge = document.createElement("span");
+        badge.className = "stack-count";
+        badge.textContent = cnt;
+        wrap.appendChild(badge);
+      }
+      recDiv.appendChild(wrap);
+    });
+    if (!Object.keys(groups).length) recDiv.innerHTML = `<span style="color:#aaa;font-size:.75rem;">None yet</span>`;
+    div.appendChild(recDiv);
+
+    container.appendChild(div);
+  });
+}
+
+function renderActions(phase, isMyTurn, players) {
+  const actions = document.getElementById("actions");
+  const pendingArea = document.getElementById("pending-area");
+  if (!actions) return;
+  actions.innerHTML = "";
+  if (pendingArea) pendingArea.innerHTML = "";
+
+  if (phase === "play" && isMyTurn) {
+    // Discard button
+    const btnDiscard = document.createElement("button");
+    btnDiscard.className = "btn btn-outline btn-sm";
+    const me = players.find(p => p.id === myPlayerId);
+    btnDiscard.textContent = `Discard & Draw (${me ? me.discards_used : 0}/${me ? me.max_discards : 4} used)`;
+    btnDiscard.disabled = !me || me.discards_used >= me.max_discards || !gameState.deck?.length;
+    btnDiscard.addEventListener("click", discardSelected);
+    actions.appendChild(btnDiscard);
+
+    // Play button
+    const btnPlay = document.createElement("button");
+    btnPlay.className = "btn btn-primary";
+    btnPlay.id = "btn-play";
+    btnPlay.textContent = "Play selected cards";
+    btnPlay.disabled = !selectedFaceUp || !selectedFaceDown;
+    btnPlay.addEventListener("click", playSelected);
+    actions.appendChild(btnPlay);
+
+    // Selection hint
+    const hint = document.createElement("p");
+    hint.style.fontSize = ".8rem";
+    hint.style.color = "#7a6a45";
+    hint.style.width = "100%";
+    hint.style.textAlign = "center";
+    hint.textContent = selectedFaceUp
+      ? `Face-up: ${selectedFaceUp} | ${selectedFaceDown ? "Face-down: " + selectedFaceDown : "Click another card for face-down"}`
+      : "Click a card to set as face-up, then another for face-down";
+    actions.appendChild(hint);
+  }
+
+  if (phase === "recruit" && gameState.pending_play) {
+    const pending = gameState.pending_play;
+    const isActor = pending.actor_id === myPlayerId;
+    const isRecruiter = !isActor; // in 1v1: the other player recruits
+
+    if (pendingArea) {
+      const title = document.createElement("p");
+      title.style.fontWeight = "700";
+      title.style.marginBottom = "8px";
+      title.textContent = isRecruiter ? "Choose a card to recruit:" : "Waiting for opponent to recruit...";
+      pendingArea.appendChild(title);
+
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "16px";
+      row.style.justifyContent = "center";
+
+      // Face-up
+      const upWrap = document.createElement("div");
+      upWrap.style.textAlign = "center";
+      const upCard = makeCardEl(pending.face_up, 0, {
+        selectable: isRecruiter,
+        onClick: isRecruiter ? () => doRecruit("face_up") : null,
+      });
+      upWrap.appendChild(upCard);
+      upWrap.appendChild(Object.assign(document.createElement("small"), { textContent: "Face-up" }));
+      row.appendChild(upWrap);
+
+      // Face-down
+      const downWrap = document.createElement("div");
+      downWrap.style.textAlign = "center";
+      const downCard = isRecruiter
+        ? makeCardEl(pending.face_down, 0, { selectable: true, onClick: () => doRecruit("face_down") })
+        : makeCardEl("?", 0, { faceDown: true });
+      downWrap.appendChild(downCard);
+      downWrap.appendChild(Object.assign(document.createElement("small"), { textContent: "Face-down" }));
+      row.appendChild(downWrap);
+
+      pendingArea.appendChild(row);
+    }
+  }
+}
+
+// ---- Card selection ----
+let selectionStep = 0; // 0 = none, 1 = face-up selected
+
+function selectHandCard(name, el) {
+  const hand = document.querySelectorAll(`.hand #hand-${myPlayerId} .card, #hand-${myPlayerId} .card`);
+  const allHandCards = document.querySelectorAll(`#hand-${myPlayerId} .card`);
+
+  if (!selectedFaceUp) {
+    selectedFaceUp = name;
+    el.classList.add("selected");
+    el.dataset.slot = "face-up";
+    setStatus(`Face-up: ${name} — now click the face-down card`);
+  } else if (!selectedFaceDown && name !== selectedFaceUp) {
+    selectedFaceDown = name;
+    el.classList.add("selected");
+    el.dataset.slot = "face-down";
+    setStatus(`Ready: Face-up ${selectedFaceUp} + Face-down ${selectedFaceDown}`);
+  } else {
+    // Reset
+    selectedFaceUp = null;
+    selectedFaceDown = null;
+    allHandCards.forEach(c => { c.classList.remove("selected"); delete c.dataset.slot; });
+    setStatus("Selection cleared — pick again");
+  }
+  // Re-render actions to enable/disable play button
+  renderActions(gameState.phase, true, gameState.players);
+}
+
+async function discardSelected() {
+  if (!selectedFaceUp) { alert("Select a card to discard first"); return; }
+  try {
+    const data = await api("/api/game/discard", { game_id: gameId, player_id: myPlayerId, card_name: selectedFaceUp });
+    selectedFaceUp = null;
+    selectedFaceDown = null;
+    gameState = data.state;
+    renderGameScreen();
+  } catch (e) { alert(e.message); }
+}
+
+async function playSelected() {
+  if (!selectedFaceUp || !selectedFaceDown) { alert("Select 2 cards first"); return; }
+  const body = { game_id: gameId, player_id: myPlayerId, face_up: selectedFaceUp, face_down: selectedFaceDown };
+
+  // FFA: target selection
+  if (gameState.mode === "local_ffa") {
+    const targets = gameState.players.filter(p => p.id !== myPlayerId && !p.eliminated);
+    const targetName = prompt(`Choose target:\n${targets.map((t, i) => `${i+1}. ${t.name}`).join("\n")}\n(enter number)`);
+    const idx = parseInt(targetName) - 1;
+    if (isNaN(idx) || !targets[idx]) { alert("Invalid target"); return; }
+    body.target_id = targets[idx].id;
+  }
+
+  try {
+    const data = await api("/api/game/play", body);
+    selectedFaceUp = null;
+    selectedFaceDown = null;
+    gameState = data.state;
+
+    if (data.ai_recruited) {
+      setStatus(`AI recruited: ${data.ai_recruited}`, "#4a90d9");
+    }
+
+    // In solo mode, if it's now the AI's turn, show interim state then handle AI play
+    if (gameState.mode === "solo" && !gameState.result && gameState.pending_play && gameState.phase === "recruit") {
+      renderGameScreen(); // show the AI's face-up + face-down for the human to recruit from
+    } else {
+      renderGameScreen();
+    }
+  } catch (e) { alert(e.message); }
+}
+
+async function doRecruit(choice) {
+  if (socket) {
+    socket.recruit(choice);
+    return;
+  }
+  try {
+    const data = await api("/api/game/recruit", { game_id: gameId, player_id: myPlayerId, choice });
+    gameState = data.state;
+    if (data.ai_played) {
+      // AI has already played next turn — state shows pending play
+    }
+    renderGameScreen();
+
+    // Hot-seat: show pass screen between turns in local mode
+    if (gameState.mode !== "solo" && !gameState.result && gameState.phase === "play") {
+      const nextPlayer = gameState.players[gameState.active_player_index];
+      if (nextPlayer.id !== myPlayerId) showPassScreen(nextPlayer.name);
+    }
+  } catch (e) { alert(e.message); }
+}
+
+// ---- Pass screen (hot-seat) ----
+function showPassScreen(nextPlayerName) {
+  const overlay = document.getElementById("pass-overlay");
+  const nameEl = document.getElementById("pass-player-name");
+  if (overlay && nameEl) {
+    nameEl.textContent = nextPlayerName;
+    overlay.classList.add("visible");
+  }
+}
+
+document.getElementById("btn-pass-confirm")?.addEventListener("click", () => {
+  document.getElementById("pass-overlay")?.classList.remove("visible");
+  myPlayerId = gameState.players[gameState.active_player_index]?.id;
+  renderGameScreen();
+});
+
+// ---- Result ----
+function showResult(result) {
+  if (!result) return;
+  const screen = document.getElementById("screen-result");
+  const winnerEl = document.getElementById("result-winner");
+  const reasonEl = document.getElementById("result-reason");
+  if (!screen) return;
+
+  const winner = gameState.players.find(p => p.id === result.winner_id);
+  const reasons = {
+    caught: "tagged their opponent!",
+    three_masterminds: "collected 3 Masterminds — unbeatable strategy!",
+    three_show_offs: "opponent collected 3 Show-offs!",
+    out_of_cards: "closest to catching when cards ran out!",
+  };
+
+  if (winnerEl) winnerEl.textContent = winner ? `${winner.name} wins!` : "Game over!";
+  if (reasonEl) reasonEl.textContent = reasons[result.reason] || result.reason;
+
+  show("screen-result");
+}
+
+document.getElementById("btn-play-again")?.addEventListener("click", () => {
+  gameId = null; gameState = null; myPlayerId = null;
+  selectedFaceUp = null; selectedFaceDown = null;
+  lastRenderedActivePlayerId = null;
+  timerReset();
+  show("screen-menu");
+});
+
+// ---- Init ----
+show("screen-menu");
