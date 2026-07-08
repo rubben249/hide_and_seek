@@ -1,7 +1,7 @@
 /* ============================================================
    app.js — Main controller: screen routing, API calls, game flow
    ============================================================ */
-import { renderBoard, renderHand, renderRecruited, makeCardEl } from "./game.js";
+import { renderBoard, renderHand, renderRecruited, makeCardEl, highlightActiveMeeple, boardCatchFlash } from "./game.js";
 import { GameSocket } from "./ws.js";
 
 const API = "";  // same origin
@@ -350,6 +350,8 @@ function renderGameScreen() {
   // ---- Timer management ----
   const cfg = gameState.timer_config;
   const activePlayer = players[gameState.active_player_index];
+  const phase = gameState.phase;
+  const isMyTurn = activePlayer?.id === myPlayerId;
 
   if (gameState.result || gameState.phase === "finished") {
     timerStop();
@@ -374,7 +376,10 @@ function renderGameScreen() {
 
   // Board
   const boardContainer = document.getElementById("board-container");
-  if (boardContainer) renderBoard(boardContainer, players, gameState.board_size);
+  if (boardContainer) {
+    renderBoard(boardContainer, players, gameState.board_size);
+    if (activePlayer && !gameState.result) highlightActiveMeeple(activePlayer.id, true);
+  }
 
   if (gameState.result) {
     showResult(gameState.result);
@@ -442,14 +447,16 @@ function renderPlayerAreas(players, isMyTurn) {
       handDiv.id = `hand-${player.id}`;
 
       const hand = isMe ? player.hand : (player.hand || []).map(() => "?");
-      hand.forEach(name => {
+      hand.forEach((name, hIdx) => {
         const isHidden = name === "?";
         const el = isHidden
-          ? makeCardEl("?", 0, { faceDown: true })
+          ? makeCardEl("?", 0, { faceDown: true, dealAnim: true })
           : makeCardEl(name, 0, {
+              dealAnim: true,
               selectable: isMe && isMyTurn && gameState.phase === "play",
               onClick: isMe && isMyTurn ? (n, el) => selectHandCard(n, el) : null,
             });
+        el.style.animationDelay = `${hIdx * 65}ms`;
         handDiv.appendChild(el);
       });
       div.appendChild(handDiv);
@@ -612,6 +619,12 @@ async function playSelected() {
   if (!selectedFaceUp || !selectedFaceDown) { alert("Select 2 cards first"); return; }
   const body = { game_id: gameId, player_id: myPlayerId, face_up: selectedFaceUp, face_down: selectedFaceDown };
 
+  // Animate selected cards flying out
+  document.querySelectorAll(`#hand-${myPlayerId} .card.selected`).forEach(el => {
+    el.classList.add("card-fly-out");
+  });
+  await new Promise(r => setTimeout(r, 360));
+
   // FFA: target selection
   if (gameState.mode === "local_ffa") {
     const targets = gameState.players.filter(p => p.id !== myPlayerId && !p.eliminated);
@@ -697,6 +710,43 @@ function showResult(result) {
   if (reasonEl) reasonEl.textContent = reasons[result.reason] || result.reason;
 
   show("screen-result");
+
+  // Board catch flash
+  if (result.reason === "caught") {
+    const boardContainer = document.getElementById("board-container");
+    boardCatchFlash(boardContainer);
+  }
+
+  // Result box pop animation (retriggered each time)
+  const box = document.getElementById("result-box");
+  if (box) {
+    box.classList.remove("result-pop-anim");
+    void box.offsetWidth;
+    box.classList.add("result-pop-anim");
+  }
+
+  // Confetti only if there's a real winner (not a draw or timer timeout loss)
+  if (result.winner_id) spawnConfetti();
+}
+
+function spawnConfetti() {
+  const colors = ["#2d7a45", "#f5c842", "#4a90d9", "#e05252", "#9b59b6", "#ff8c00", "#00bcd4"];
+  for (let i = 0; i < 90; i++) {
+    const p = document.createElement("div");
+    p.className = "confetti-particle";
+    const drift = ((Math.random() - 0.5) * 55).toFixed(1);
+    const startY = (-8 - Math.random() * 28).toFixed(1);
+    p.style.cssText = `
+      left:${(Math.random() * 100).toFixed(1)}vw;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      --start-y:${startY}vh;
+      --drift:${drift}vw;
+      --fall-dur:${(1.8 + Math.random() * 1.6).toFixed(2)}s;
+      --fall-delay:${(Math.random() * 0.9).toFixed(2)}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 3800);
+  }
 }
 
 document.getElementById("btn-play-again")?.addEventListener("click", () => {

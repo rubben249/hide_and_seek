@@ -106,17 +106,33 @@ for i in $(seq 1 $MAX_RETRIES); do
 done
 echo ""
 
-# Open browser
-info "Opening browser at $URL ..."
-if command -v xdg-open &>/dev/null; then
-    xdg-open "$URL" &
-elif command -v open &>/dev/null; then
-    open "$URL"
-elif command -v wslview &>/dev/null; then
-    wslview "$URL"
-else
-    warn "Could not auto-open browser. Navigate to: $URL"
+# Open browser — prefer Chrome/Chromium, fall back to system default
+info "Opening Chrome at $URL ..."
+OPENED=false
+for CHROME_CMD in \
+    "google-chrome" "google-chrome-stable" \
+    "chromium-browser" "chromium" \
+    "microsoft-edge" "microsoft-edge-stable"; do
+    if command -v "$CHROME_CMD" &>/dev/null; then
+        "$CHROME_CMD" --new-window "$URL" &>/dev/null &
+        OPENED=true
+        ok "Opened with $CHROME_CMD"
+        break
+    fi
+done
+if [[ "$OPENED" == "false" ]]; then
+    # WSL2
+    if command -v wslview &>/dev/null; then
+        wslview "$URL"; OPENED=true
+    # macOS
+    elif command -v open &>/dev/null; then
+        open -a "Google Chrome" "$URL" 2>/dev/null || open "$URL"; OPENED=true
+    # Linux fallback
+    elif command -v xdg-open &>/dev/null; then
+        xdg-open "$URL" &; OPENED=true
+    fi
 fi
+[[ "$OPENED" == "false" ]] && warn "Could not auto-open browser — navigate to: $URL"
 
 echo ""
 ok "TAG! is running! 🎮"
