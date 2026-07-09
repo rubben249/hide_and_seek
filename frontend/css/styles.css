@@ -21,7 +21,7 @@
   --text-muted:  #7a6a45;
   --shadow:      0 4px 20px rgba(0,0,0,.15);
   --radius:      14px;
-  --radius-card: 12px;
+  --radius-card: 14px;
 }
 
 body {
@@ -211,13 +211,20 @@ input:focus, select:focus {
 .lb-rate  { color: var(--text-muted); font-size: .75rem; }
 
 /* ============================================================
-   Board
+   Board — rectangular neighborhood path
    ============================================================ */
 #board-container {
-  width: 100%; max-width: 520px; aspect-ratio: 1;
-  position: relative; margin: 12px auto;
-  background: radial-gradient(ellipse at 40% 40%, #c8dfc8 0%, #a8c8a8 40%, #8ab08a 100%);
-  border-radius: 50%; box-shadow: 0 8px 32px rgba(0,0,0,.18), inset 0 0 40px rgba(0,0,0,.08);
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1;
+  position: relative;
+  margin: 12px auto;
+  background: linear-gradient(145deg, #3d7a52 0%, #2d6e3e 50%, #1e5230 100%);
+  border-radius: 14px;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,.28),
+    0 0 0 3px rgba(45,122,69,.25),
+    inset 0 0 30px rgba(0,0,0,.12);
 }
 #board-svg { width: 100%; height: 100%; }
 
@@ -236,83 +243,159 @@ input:focus, select:focus {
 .player-area h3 { font-size: .88rem; font-weight: 800; margin-bottom: 8px; color: var(--green-dark); }
 
 /* ============================================================
-   Cards — illustrated design
+   Cards — full illustrated portrait design
    ============================================================ */
-.hand { display: flex; flex-wrap: wrap; gap: 8px; min-height: 80px; }
-.recruited-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.hand { display: flex; flex-wrap: wrap; gap: 10px; min-height: 80px; }
+.recruited-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .card {
-  width: 76px; border-radius: var(--radius-card);
-  border: 2.5px solid var(--card-border); background: var(--card-bg);
-  display: flex; flex-direction: column; align-items: center;
+  width: 82px;
+  border-radius: var(--radius-card);
+  border: 2.5px solid var(--card-border);
+  background: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   overflow: hidden;
-  cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s;
-  position: relative; user-select: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+  position: relative;
+  user-select: none;
+  box-shadow: 0 3px 10px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
 }
-.card:hover:not(.disabled) { transform: translateY(-7px) scale(1.04); box-shadow: 0 12px 28px rgba(0,0,0,.22); }
+.card:hover:not(.disabled) {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 18px 35px rgba(0,0,0,.25), 0 0 0 2px var(--green);
+  z-index: 10;
+}
 .card.selected {
-  border-color: var(--green); transform: translateY(-4px);
-  box-shadow: 0 0 0 3px rgba(45,122,69,.35), 0 8px 20px rgba(45,122,69,.2);
+  border-color: var(--green);
+  transform: translateY(-6px);
+  box-shadow: 0 0 0 3px rgba(45,122,69,.4), 0 10px 22px rgba(45,122,69,.25);
 }
 .card.face-down {
-  background: linear-gradient(135deg, var(--green-dark) 0%, #0e3320 100%);
-  border-color: var(--green-dark); cursor: default;
+  background: linear-gradient(145deg, #1a4a2a 0%, #0d2e18 100%);
+  border-color: #2d6e3e;
+  cursor: default;
+}
+.card.face-down .card-back-inner {
+  width: 100%;
+  height: 120px;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,.04) 0px,
+      rgba(255,255,255,.04) 2px,
+      transparent 2px,
+      transparent 8px
+    ),
+    linear-gradient(145deg, #1a4a2a 0%, #0d2e18 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card.face-down .card-back-inner::after {
+  content: "🂠";
+  font-size: 2.2rem;
+  opacity: .6;
+  color: #7ec87e;
 }
 .card.disabled { opacity: .45; pointer-events: none; }
 
-/* Card art area — each type gets a gradient + big emoji */
+/* Card art — full-bleed SVG illustration */
 .card-art {
-  width: calc(100% + 0px); margin: 0;
-  height: 52px; display: flex; align-items: center; justify-content: center;
-  font-size: 2rem; flex-shrink: 0;
-  border-bottom: 2px solid rgba(0,0,0,.08);
+  width: 100%;
+  height: 90px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  background: #ddd;
 }
-.card[data-type="Sprinter"]   .card-art { background: linear-gradient(135deg, #1a6db5, #6ab0f5); }
-.card[data-type="Prankster"]  .card-art { background: linear-gradient(135deg, #c4410c, #f0855a); }
-.card[data-type="Mastermind"] .card-art { background: linear-gradient(135deg, #c09000, #f5d050); }
-.card[data-type="Blitzer"]    .card-art { background: linear-gradient(135deg, #444, #888); }
-.card[data-type="Show-off"]   .card-art { background: linear-gradient(135deg, #b52020, #f07070); }
-.card[data-type="Lookout"]    .card-art { background: linear-gradient(135deg, #1a7a3a, #52c87a); }
-.card[data-type="Best Buddy"] .card-art { background: linear-gradient(135deg, #6a1ab5, #b07af5); }
-.card[data-type="Snitch"]     .card-art { background: linear-gradient(135deg, #2c2c2c, #5a5a5a); }
+.card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 15%;
+  display: block;
+  pointer-events: none;
+}
+.card-art-fallback {
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
 
-.card-body { padding: 4px 4px 5px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+/* Card body — name + values */
+.card-body {
+  padding: 5px 5px 6px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: var(--card-bg);
+  border-top: 1.5px solid rgba(0,0,0,.08);
+}
 
 .card-name {
-  font-size: .55rem; font-weight: 800; text-align: center;
-  text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted);
-  line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
-  padding: 0 2px;
+  font-size: .54rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  padding: 0 3px;
 }
+
 .card-values {
-  display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: .62rem; font-weight: 800;
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
 }
-.card-values .v { padding: 1px 5px; border-radius: 5px; background: #eee; color: var(--text); }
+.card-values .v {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #eee;
+  color: var(--text);
+  font-size: .6rem;
+  font-weight: 800;
+  min-width: 20px;
+  text-align: center;
+}
 .card-values .v.active { background: var(--green); color: #fff; }
 .card-values .v.win    { background: var(--yellow); color: var(--text); }
 .card-values .v.lose   { background: var(--red); color: #fff; }
 
-/* Card type accent borders */
-.card[data-type="Sprinter"]   { border-top-color: #4a90d9; }
-.card[data-type="Prankster"]  { border-top-color: #e07c52; }
-.card[data-type="Mastermind"] { border-top-color: #f5c842; }
-.card[data-type="Blitzer"]    { border-top-color: #7a7a7a; }
-.card[data-type="Show-off"]   { border-top-color: #e05252; }
-.card[data-type="Lookout"]    { border-top-color: #52a85e; }
-.card[data-type="Best Buddy"] { border-top-color: #9b59b6; }
-.card[data-type="Snitch"]     { border-top-color: #2c2c2c; }
+/* Card type accent — top border strip matching the card's color theme */
+.card[data-type="Enforcer"]     { border-top: 4px solid #7c3aed; }
+.card[data-type="Double Agent"] { border-top: 4px solid #ef4444; }
+.card[data-type="Codebreaker"]  { border-top: 4px solid #06b6d4; }
+.card[data-type="Saboteur"]     { border-top: 4px solid #4f46e5; }
+.card[data-type="Daredevil"]    { border-top: 4px solid #ec4899; }
+.card[data-type="Sentinel"]     { border-top: 4px solid #10b981; }
+.card[data-type="Sidekick"]     { border-top: 4px solid #fbbf24; }
+.card[data-type="Mole"]         { border-top: 4px solid #78716c; }
 
 /* ---- Stacked recruited cards ---- */
-.card-stack { position: relative; width: 76px; }
+.card-stack { position: relative; width: 82px; }
 .card-stack .card { position: absolute; }
 .card-stack .card:nth-child(2) { top: 4px; left: 4px; }
 .card-stack .card:nth-child(3) { top: 8px; left: 8px; }
 .stack-count {
-  position: absolute; top: -6px; right: -6px; width: 20px; height: 20px;
+  position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
   background: var(--green); color: #fff; border-radius: 50%;
-  font-size: .7rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
   z-index: 10; border: 2px solid var(--card-bg);
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
 }
 
 /* ============================================================
@@ -521,25 +604,25 @@ hr.divider { border: none; border-top: 1px solid var(--card-border); margin: 8px
 }
 .card-fly-out { animation: card-fly-out .38s cubic-bezier(0.55,0,.75,0.1) forwards; pointer-events: none; }
 
-/* Mastermind glows */
-@keyframes mastermind-glow {
-  0%, 100% { box-shadow: 0 0 6px 2px rgba(245,200,66,.5);  border-color: #f5c842; }
-  50%       { box-shadow: 0 0 20px 7px rgba(245,200,66,.9); border-color: #ffe066; }
+/* Codebreaker glows (win condition) */
+@keyframes codebreaker-glow {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(6,182,212,.5);  border-color: #06b6d4; }
+  50%       { box-shadow: 0 0 20px 7px rgba(6,182,212,.9); border-color: #67e8f9; }
 }
-.mastermind-warn { animation: mastermind-glow 2s ease-in-out infinite; border-top-color: #f5c842 !important; }
-.mastermind-win  { box-shadow: 0 0 26px 10px rgba(245,200,66,1), 0 0 0 3px #f5c842; border-color: #f5c842 !important; }
+.codebreaker-warn { animation: codebreaker-glow 2s ease-in-out infinite; border-top-color: #06b6d4 !important; }
+.codebreaker-win  { box-shadow: 0 0 26px 10px rgba(6,182,212,1), 0 0 0 3px #06b6d4; border-color: #06b6d4 !important; }
 
-/* Show-off danger */
-@keyframes showoff-danger {
-  0%, 100% { box-shadow: 0 0 6px 2px rgba(224,82,82,.4);   border-color: #e05252; }
-  50%       { box-shadow: 0 0 20px 7px rgba(224,82,82,.85); border-color: #ff7070; }
+/* Daredevil danger (lose condition) */
+@keyframes daredevil-danger {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(236,72,153,.4);   border-color: #ec4899; }
+  50%       { box-shadow: 0 0 20px 7px rgba(236,72,153,.85); border-color: #f9a8d4; }
 }
-@keyframes showoff-critical {
-  0%, 100% { box-shadow: 0 0 8px 5px rgba(224,82,82,.7);  background: #fff5f5; }
-  50%       { box-shadow: 0 0 28px 12px rgba(224,82,82,1); background: #ffe4e4; }
+@keyframes daredevil-critical {
+  0%, 100% { box-shadow: 0 0 8px 5px rgba(236,72,153,.7);  background: #fff5f8; }
+  50%       { box-shadow: 0 0 28px 12px rgba(236,72,153,1); background: #ffe4ef; }
 }
-.showoff-warn { animation: showoff-danger 1.5s ease-in-out infinite; border-top-color: #e05252 !important; }
-.showoff-lose { animation: showoff-critical .75s ease-in-out infinite; border-color: #e05252 !important; }
+.daredevil-warn { animation: daredevil-danger 1.5s ease-in-out infinite; border-top-color: #ec4899 !important; }
+.daredevil-lose { animation: daredevil-critical .75s ease-in-out infinite; border-color: #ec4899 !important; }
 
 /* ============================================================
    Board / meeple animations
@@ -588,10 +671,10 @@ hr.divider { border: none; border-top: 1px solid var(--card-border); margin: 8px
    ============================================================ */
 @media (max-width: 700px) {
   .game-layout { grid-template-columns: 1fr; }
-  #board-container { max-width: 300px; }
+  #board-container { max-width: 320px; }
   .title { font-size: 2.8rem; }
   #timer-bar { flex-wrap: wrap; }
   .timer-players { min-width: 100%; }
-  .card { width: 66px; }
-  .card-art { height: 44px; font-size: 1.7rem; }
+  .card { width: 70px; }
+  .card-art { height: 76px; }
 }

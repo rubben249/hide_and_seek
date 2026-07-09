@@ -803,8 +803,8 @@ function showResult(result) {
   const winner = gameState.players.find(p => p.id === result.winner_id);
   const reasons = {
     caught: "tagged their opponent!",
-    three_masterminds: "collected 3 Masterminds — unbeatable strategy!",
-    three_show_offs: "opponent collected 3 Show-offs!",
+    three_masterminds: "collected 3 Codebreakers — unbeatable strategy!",
+    three_show_offs: "opponent collected 3 Daredevils!",
     out_of_cards: "closest to catching when cards ran out!",
   };
 

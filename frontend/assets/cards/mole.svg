@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#1c1917"/>
+      <stop offset="100%" stop-color="#44403c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="55%" r="50%">
+      <stop offset="0%" stop-color="#78716c" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#1c1917" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spotlight" cx="50%" cy="40%" r="45%">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#1c1917" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <rect width="240" height="300" fill="url(#glow)"/>
+  <rect width="240" height="300" fill="url(#spotlight)"/>
+  <!-- Underground tunnel atmosphere -->
+  <ellipse cx="118" cy="310" rx="120" ry="40" fill="#292524" opacity="0.9"/>
+  <path d="M 0 260 Q 50 240 118 250 Q 186 240 240 260 L 240 300 L 0 300 Z" fill="#1c1917"/>
+  <!-- Dirt texture -->
+  <ellipse cx="40" cy="270" rx="25" ry="10" fill="#292524" opacity="0.7"/>
+  <ellipse cx="185" cy="275" rx="20" ry="8" fill="#292524" opacity="0.6"/>
+  <ellipse cx="110" cy="280" rx="30" ry="8" fill="#292524" opacity="0.5"/>
+  <!-- Digging claws / dirt pile -->
+  <ellipse cx="55" cy="265" rx="20" ry="12" fill="#44403c" opacity="0.8"/>
+  <ellipse cx="175" cy="268" rx="18" ry="10" fill="#44403c" opacity="0.7"/>
+  <!-- Ground shadow -->
+  <ellipse cx="118" cy="293" rx="60" ry="8" fill="#0c0a09" opacity="0.9"/>
+  <!-- Body (stout, round, dark brown) -->
+  <ellipse cx="118" cy="230" rx="52" ry="65" fill="#292524"/>
+  <rect x="66" y="185" width="104" height="90" fill="#292524" rx="10"/>
+  <!-- Trenchcoat (informant style, very dark) -->
+  <polygon points="118,185 95,212 100,300 118,268" fill="#1c1917"/>
+  <polygon points="118,185 141,212 138,300 118,268" fill="#1c1917"/>
+  <!-- Collar turned up high -->
+  <polygon points="104,185 78,210 100,215" fill="#0c0a09"/>
+  <polygon points="132,185 158,210 138,215" fill="#0c0a09"/>
+  <!-- Belt (with gadget pouches, secretive) -->
+  <rect x="74" y="238" width="88" height="11" fill="#292524" rx="3"/>
+  <rect x="110" y="234" width="18" height="19" fill="#44403c" rx="2"/>
+  <!-- Left arm (digging claw) -->
+  <ellipse cx="58" cy="220" rx="18" ry="42" fill="#1c1917" transform="rotate(-15 58 220)"/>
+  <!-- Right arm (holding something behind back) -->
+  <ellipse cx="178" cy="225" rx="18" ry="40" fill="#1c1917" transform="rotate(12 178 225)"/>
+  <!-- Large digging claws on left -->
+  <path d="M 40 255 L 28 248 M 40 255 L 30 258 M 40 255 L 30 265" stroke="#57534e" stroke-width="4" stroke-linecap="round"/>
+  <!-- Dossier / secret papers behind back -->
+  <rect x="180" y="248" width="28" height="36" fill="#fef3c7" rx="2" transform="rotate(-10 180 248)" opacity="0.85"/>
+  <rect x="183" y="252" width="20" height="3" fill="#1c1917" opacity="0.4" transform="rotate(-10 183 252)"/>
+  <rect x="183" y="258" width="15" height="3" fill="#1c1917" opacity="0.3" transform="rotate(-10 183 258)"/>
+  <!-- Mole head (velvety dark fur, round) -->
+  <ellipse cx="118" cy="128" rx="50" ry="55" fill="#3c3532"/>
+  <!-- Tiny ears (barely visible, moles have small ears) -->
+  <ellipse cx="76" cy="100" rx="12" ry="16" fill="#292524"/>
+  <ellipse cx="160" cy="100" rx="12" ry="16" fill="#292524"/>
+  <!-- Distinctive large pink star-shaped nose (mole!) -->
+  <circle cx="118" cy="155" r="14" fill="#f472b6" opacity="0.9"/>
+  <!-- Star-nose tentacles (22 fleshy rays) -->
+  <g transform="translate(118,155)">
+    <ellipse cx="0" cy="-12" rx="3" ry="5" fill="#f9a8d4"/>
+    <ellipse cx="7" cy="-10" rx="3" ry="5" fill="#f9a8d4" transform="rotate(30 7 -10)"/>
+    <ellipse cx="11" cy="-4" rx="3" ry="5" fill="#f9a8d4" transform="rotate(60 11 -4)"/>
+    <ellipse cx="12" cy="4" rx="3" ry="5" fill="#f9a8d4" transform="rotate(90 12 4)"/>
+    <ellipse cx="7" cy="10" rx="3" ry="5" fill="#f9a8d4" transform="rotate(120 7 10)"/>
+    <ellipse cx="0" cy="12" rx="3" ry="5" fill="#f9a8d4"/>
+    <ellipse cx="-7" cy="10" rx="3" ry="5" fill="#f9a8d4" transform="rotate(-120 -7 10)"/>
+    <ellipse cx="-12" cy="4" rx="3" ry="5" fill="#f9a8d4" transform="rotate(-90 -12 4)"/>
+    <ellipse cx="-11" cy="-4" rx="3" ry="5" fill="#f9a8d4" transform="rotate(-60 -11 -4)"/>
+    <ellipse cx="-7" cy="-10" rx="3" ry="5" fill="#f9a8d4" transform="rotate(-30 -7 -10)"/>
+    <circle r="7" fill="#ec4899"/>
+  </g>
+  <!-- Eyes (tiny, nearly blind, but shifty) -->
+  <ellipse cx="98" cy="130" rx="8" ry="7" fill="#0c0a09"/>
+  <ellipse cx="138" cy="130" rx="8" ry="7" fill="#0c0a09"/>
+  <ellipse cx="97" cy="128" rx="2" ry="2" fill="#57534e" opacity="0.7"/>
+  <ellipse cx="137" cy="128" rx="2" ry="2" fill="#57534e" opacity="0.7"/>
+  <!-- Shifty sideways glance (pupils off-center) -->
+  <ellipse cx="100" cy="131" rx="3" ry="3" fill="#1c1917"/>
+  <ellipse cx="140" cy="131" rx="3" ry="3" fill="#1c1917"/>
+  <!-- Suspicious narrowed brows -->
+  <path d="M 88 121 Q 98 117 108 122" stroke="#1c1917" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 128 122 Q 138 117 148 121" stroke="#1c1917" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Small snout fur above nose -->
+  <ellipse cx="118" cy="143" rx="15" ry="8" fill="#4a4542"/>
+  <!-- Sly thin-lipped smile -->
+  <path d="M 108 148 Q 118 154 128 148" stroke="#0c0a09" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Fedora (informant hat, dark, pulled low) -->
+  <ellipse cx="118" cy="87" rx="56" ry="11" fill="#0c0a09"/>
+  <rect x="74" y="52" width="88" height="38" fill="#0c0a09" rx="5"/>
+  <!-- Hat shadow over eyes -->
+  <ellipse cx="118" cy="87" rx="48" ry="8" fill="#1c1917" opacity="0.5"/>
+  <!-- Hat band (subtle dark red — betrayal color) -->
+  <rect x="74" y="82" width="88" height="9" fill="#7f1d1d" opacity="0.8"/>
+  <!-- Floating question marks (mystery/info broker) -->
+  <text x="20" y="150" font-size="14" fill="rgba(120,113,108,0.4)" font-family="serif">?</text>
+  <text x="205" y="130" font-size="12" fill="rgba(120,113,108,0.35)" font-family="serif">?</text>
+  <text x="200" y="190" font-size="10" fill="rgba(120,113,108,0.3)" font-family="serif">?</text>
+</svg>

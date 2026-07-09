@@ -115,21 +115,21 @@ def _evaluate(state: GameState, ai_id: str) -> float:
 
     score += (dist_human_to_ai - dist_ai_to_human) * 2.0
 
-    # Mastermind progress (win condition)
-    ai_mm = ai.count_in_play(CardName.MASTERMIND)
-    human_mm = human.count_in_play(CardName.MASTERMIND)
+    # Codebreaker progress (win condition)
+    ai_mm = ai.count_in_play(CardName.CODEBREAKER)
+    human_mm = human.count_in_play(CardName.CODEBREAKER)
     score += ai_mm * 15.0
     score -= human_mm * 15.0
 
-    # Show-off danger (lose condition)
-    ai_so = ai.count_in_play(CardName.SHOW_OFF)
-    human_so = human.count_in_play(CardName.SHOW_OFF)
-    score -= ai_so * 20.0 * (ai_so / 3.0)   # exponential penalty
-    score += human_so * 10.0                  # human in danger = good for AI
+    # Daredevil danger (lose condition)
+    ai_so = ai.count_in_play(CardName.DAREDEVIL)
+    human_so = human.count_in_play(CardName.DAREDEVIL)
+    score -= ai_so * 20.0 * (ai_so / 3.0)
+    score += human_so * 10.0
 
-    # Lookout investment
-    ai_look = ai.count_in_play(CardName.LOOKOUT)
-    human_look = human.count_in_play(CardName.LOOKOUT)
+    # Sentinel investment
+    ai_look = ai.count_in_play(CardName.SENTINEL)
+    human_look = human.count_in_play(CardName.SENTINEL)
     score += ai_look * 5.0
     score -= human_look * 3.0
 

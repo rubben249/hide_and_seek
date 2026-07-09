@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#5b21b6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="60%" r="50%">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#5b21b6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <rect width="240" height="300" fill="url(#glow)"/>
+  <!-- Background buildings -->
+  <rect x="160" y="80" width="50" height="120" fill="#4c1d95" rx="3" opacity="0.5"/>
+  <rect x="170" y="70" width="30" height="20" fill="#4c1d95" opacity="0.5"/>
+  <rect x="20" y="110" width="40" height="90" fill="#4c1d95" rx="3" opacity="0.5"/>
+  <!-- Windows -->
+  <rect x="175" y="88" width="8" height="8" fill="#a78bfa" opacity="0.6"/>
+  <rect x="190" y="88" width="8" height="8" fill="#a78bfa" opacity="0.6"/>
+  <rect x="175" y="108" width="8" height="8" fill="#a78bfa" opacity="0.3"/>
+  <rect x="190" y="108" width="8" height="8" fill="#a78bfa" opacity="0.8"/>
+  <!-- Ground shadow -->
+  <ellipse cx="120" cy="292" rx="80" ry="10" fill="#3b0764" opacity="0.6"/>
+  <!-- Legs in suit trousers -->
+  <rect x="88" y="230" width="30" height="60" fill="#1e1b4b" rx="8"/>
+  <rect x="122" y="230" width="30" height="60" fill="#1e1b4b" rx="8"/>
+  <!-- Shoes -->
+  <ellipse cx="103" cy="291" rx="20" ry="8" fill="#0f0a1e"/>
+  <ellipse cx="137" cy="291" rx="20" ry="8" fill="#0f0a1e"/>
+  <!-- Body / Suit jacket -->
+  <ellipse cx="120" cy="205" rx="55" ry="65" fill="#2e1065"/>
+  <rect x="65" y="170" width="110" height="90" fill="#2e1065" rx="10"/>
+  <!-- Shirt/tie -->
+  <rect x="105" y="170" width="30" height="70" fill="#f5f3ff" rx="4"/>
+  <polygon points="120,178 113,185 120,230 127,185" fill="#7c3aed"/>
+  <!-- Suit lapels -->
+  <polygon points="105,170 85,200 105,240" fill="#1e1b4b"/>
+  <polygon points="135,170 155,200 135,240" fill="#1e1b4b"/>
+  <!-- Left arm (power fist) -->
+  <ellipse cx="62" cy="215" rx="18" ry="35" fill="#2e1065" transform="rotate(-20 62 215)"/>
+  <!-- Right arm (pointing) -->
+  <ellipse cx="178" cy="210" rx="18" ry="35" fill="#2e1065" transform="rotate(15 178 210)"/>
+  <!-- Left hand (fist) -->
+  <rect x="40" y="228" width="32" height="26" fill="#c07a3a" rx="9"/>
+  <!-- Right hand (pointing finger) -->
+  <ellipse cx="185" cy="192" rx="12" ry="18" fill="#c07a3a"/>
+  <rect x="178" y="175" width="14" height="12" fill="#c07a3a" rx="5"/>
+  <!-- Head / Squirrel -->
+  <ellipse cx="120" cy="133" rx="52" ry="55" fill="#c07a3a"/>
+  <!-- Ears (pointed squirrel) -->
+  <polygon points="80,95 70,50 100,88" fill="#c07a3a"/>
+  <polygon points="160,95 170,50 140,88" fill="#c07a3a"/>
+  <polygon points="82,92 75,60 100,86" fill="#a0522d"/>
+  <polygon points="158,92 165,60 140,86" fill="#a0522d"/>
+  <!-- Face -->
+  <ellipse cx="105" cy="138" rx="9" ry="11" fill="#1e1b4b"/>
+  <ellipse cx="135" cy="138" rx="9" ry="11" fill="#1e1b4b"/>
+  <ellipse cx="107" cy="135" rx="4" ry="4" fill="white"/>
+  <ellipse cx="137" cy="135" rx="4" ry="4" fill="white"/>
+  <!-- Snout -->
+  <ellipse cx="120" cy="155" rx="14" ry="10" fill="#a0522d"/>
+  <ellipse cx="120" cy="153" rx="6" ry="5" fill="#7a3210"/>
+  <!-- Mouth - determined grin -->
+  <path d="M 110 162 Q 120 170 130 162" stroke="#5a1a08" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="106" y1="155" x2="72" y2="150" stroke="#5a1a08" stroke-width="1.5" opacity="0.7"/>
+  <line x1="106" y1="158" x2="72" y2="158" stroke="#5a1a08" stroke-width="1.5" opacity="0.7"/>
+  <line x1="134" y1="155" x2="168" y2="150" stroke="#5a1a08" stroke-width="1.5" opacity="0.7"/>
+  <line x1="134" y1="158" x2="168" y2="158" stroke="#5a1a08" stroke-width="1.5" opacity="0.7"/>
+  <!-- Bushy tail behind -->
+  <path d="M 168 265 Q 215 210 200 155 Q 190 120 205 90" stroke="#c07a3a" stroke-width="32" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <path d="M 168 265 Q 215 210 200 155 Q 190 120 205 90" stroke="#e8a060" stroke-width="18" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <!-- Stars/sparkles -->
+  <text x="22" y="55" font-size="18" fill="rgba(196,181,253,0.5)">✦</text>
+  <text x="200" y="45" font-size="12" fill="rgba(196,181,253,0.4)">✦</text>
+  <text x="30" y="165" font-size="10" fill="rgba(196,181,253,0.3)">✦</text>
+</svg>

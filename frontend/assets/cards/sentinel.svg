@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#065f46"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#a7f3d0" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#065f46" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <rect width="240" height="300" fill="url(#glow)"/>
+  <!-- Foliage / surveillance backdrop -->
+  <ellipse cx="30" cy="220" rx="40" ry="80" fill="#064e3b" opacity="0.7"/>
+  <ellipse cx="210" cy="240" rx="35" ry="70" fill="#064e3b" opacity="0.7"/>
+  <ellipse cx="15" cy="160" rx="30" ry="50" fill="#065f46" opacity="0.5"/>
+  <ellipse cx="220" cy="170" rx="30" ry="50" fill="#065f46" opacity="0.5"/>
+  <!-- Leaves -->
+  <circle cx="30" cy="155" r="20" fill="#047857" opacity="0.6"/>
+  <circle cx="200" cy="165" r="18" fill="#047857" opacity="0.5"/>
+  <!-- Ground shadow -->
+  <ellipse cx="118" cy="295" rx="68" ry="9" fill="#022c22" opacity="0.8"/>
+  <!-- Trench coat body (olive/brown) -->
+  <ellipse cx="118" cy="225" rx="55" ry="70" fill="#3d5a20"/>
+  <rect x="63" y="180" width="110" height="100" fill="#3d5a20" rx="10"/>
+  <!-- Coat details -->
+  <polygon points="118,180 96,210 104,300 118,262" fill="#4a7028"/>
+  <polygon points="118,180 140,210 134,300 118,262" fill="#4a7028"/>
+  <!-- Coat collar turned up -->
+  <polygon points="105,180 80,205 100,205" fill="#2d4a14"/>
+  <polygon points="131,180 156,205 138,205" fill="#2d4a14"/>
+  <!-- Belt -->
+  <rect x="72" y="230" width="92" height="11" fill="#78350f" rx="3"/>
+  <rect x="113" y="226" width="14" height="19" fill="#d97706" rx="2"/>
+  <!-- Binoculars in left hand -->
+  <ellipse cx="55" cy="228" rx="18" ry="40" fill="#3d5a20" transform="rotate(-8 55 228)"/>
+  <!-- Right arm behind back -->
+  <ellipse cx="180" cy="222" rx="18" ry="40" fill="#2d4a14" transform="rotate(10 180 222)"/>
+  <!-- Binoculars -->
+  <rect x="22" y="240" width="44" height="22" fill="#1a2e0a" rx="6"/>
+  <circle cx="33" cy="251" rx="8" ry="8" fill="#0d1f05"/>
+  <circle cx="55" cy="251" rx="8" ry="8" fill="#0d1f05"/>
+  <circle cx="33" cy="251" rx="5" ry="5" fill="#065f46" opacity="0.8"/>
+  <circle cx="55" cy="251" rx="5" ry="5" fill="#065f46" opacity="0.8"/>
+  <!-- Eye glint in binoculars -->
+  <circle cx="31" cy="249" r="2" fill="#6ee7b7" opacity="0.7"/>
+  <circle cx="53" cy="249" r="2" fill="#6ee7b7" opacity="0.7"/>
+  <!-- Owl/hawk head -->
+  <ellipse cx="118" cy="128" rx="52" ry="58" fill="#8b7355"/>
+  <!-- Ear tufts (owl) -->
+  <polygon points="90,82 82,40 110,78" fill="#8b7355"/>
+  <polygon points="146,82 154,40 130,78" fill="#8b7355"/>
+  <polygon points="91,80 85,52 107,76" fill="#6b5a40"/>
+  <polygon points="145,80 151,52 131,76" fill="#6b5a40"/>
+  <!-- Facial disc (owl feature) -->
+  <ellipse cx="118" cy="138" rx="38" ry="40" fill="#d4b896" opacity="0.5"/>
+  <!-- Detective hat (fedora) -->
+  <ellipse cx="118" cy="85" rx="58" ry="11" fill="#2d3a1e"/>
+  <rect x="75" y="48" width="86" height="40" fill="#2d3a1e" rx="6"/>
+  <!-- Hat band -->
+  <rect x="75" y="79" width="86" height="9" fill="#047857"/>
+  <!-- Hat crease -->
+  <line x1="118" y1="48" x2="118" y2="79" stroke="#1a2410" stroke-width="2" opacity="0.5"/>
+  <!-- Eyes (large, sharp, owl-like) -->
+  <ellipse cx="102" cy="130" rx="14" ry="16" fill="#fbbf24"/>
+  <ellipse cx="134" cy="130" rx="14" ry="16" fill="#fbbf24"/>
+  <ellipse cx="102" cy="130" rx="9" ry="11" fill="#1a1000"/>
+  <ellipse cx="134" cy="130" rx="9" ry="11" fill="#1a1000"/>
+  <ellipse cx="104" cy="127" rx="3.5" ry="3.5" fill="white"/>
+  <ellipse cx="136" cy="127" rx="3.5" ry="3.5" fill="white"/>
+  <!-- Beak -->
+  <polygon points="118,142 110,155 126,155" fill="#d97706"/>
+  <!-- Alert expression -->
+  <path d="M 95 116 Q 102 110 109 116" stroke="#6b5a40" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M 127 116 Q 134 110 141 116" stroke="#6b5a40" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Feather details -->
+  <path d="M 80 130 Q 70 100 80 80" stroke="#6b5a40" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M 156 130 Q 166 100 156 80" stroke="#6b5a40" stroke-width="2" fill="none" opacity="0.5"/>
+  <!-- Surveillance arc -->
+  <path d="M 50 128 Q 118 70 186 128" stroke="#6ee7b7" stroke-width="1.5" fill="none" opacity="0.4" stroke-dasharray="4,4"/>
+</svg>

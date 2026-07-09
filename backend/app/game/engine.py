@@ -334,16 +334,16 @@ def _check_1v1_end(state: GameState) -> GameState:
     if _has_caught(state, other, active):
         active_loses.append(EndReason.CAUGHT)
 
-    # B: 3 Masterminds
-    if active.count_in_play(CardName.MASTERMIND) >= 3:
+    # B: 3 Codebreakers
+    if active.count_in_play(CardName.CODEBREAKER) >= 3:
         active_wins.append(EndReason.THREE_MASTERMINDS)
-    if other.count_in_play(CardName.MASTERMIND) >= 3:
+    if other.count_in_play(CardName.CODEBREAKER) >= 3:
         active_loses.append(EndReason.THREE_MASTERMINDS)
 
-    # C: 3 Show-offs
-    if active.count_in_play(CardName.SHOW_OFF) >= 3:
+    # C: 3 Daredevils
+    if active.count_in_play(CardName.DAREDEVIL) >= 3:
         active_loses.append(EndReason.THREE_SHOW_OFFS)
-    if other.count_in_play(CardName.SHOW_OFF) >= 3:
+    if other.count_in_play(CardName.DAREDEVIL) >= 3:
         active_wins.append(EndReason.THREE_SHOW_OFFS)
 
     game_ends = bool(active_wins or active_loses)
@@ -389,10 +389,10 @@ def _check_team_end(state: GameState) -> GameState:
     team_a, team_b = state.teams[0], state.teams[1]
 
     def team_masterminds(team: Team) -> int:
-        return team.recruited.count(CardName.MASTERMIND.value)
+        return team.recruited.count(CardName.CODEBREAKER.value)
 
     def team_show_offs(team: Team) -> int:
-        return team.recruited.count(CardName.SHOW_OFF.value)
+        return team.recruited.count(CardName.DAREDEVIL.value)
 
     def caught(chaser: Team, target: Team) -> bool:
         home = target.home_position
@@ -440,15 +440,15 @@ def _check_ffa_end(state: GameState) -> GameState:
     active = state.active_player()
     alive = [p for p in state.players if not p.eliminated]
 
-    # Check 3 Show-offs → elimination
+    # Check 3 Daredevils → elimination
     for p in list(alive):
-        if p.count_in_play(CardName.SHOW_OFF) >= 3:
+        if p.count_in_play(CardName.DAREDEVIL) >= 3:
             p.eliminated = True
             alive = [x for x in alive if not x.eliminated]
 
-    # Check 3 Masterminds → instant win
+    # Check 3 Codebreakers → instant win
     for p in alive:
-        if p.count_in_play(CardName.MASTERMIND) >= 3:
+        if p.count_in_play(CardName.CODEBREAKER) >= 3:
             state.result = GameResult(winner_id=p.id, reason=EndReason.THREE_MASTERMINDS)
             state.phase = GamePhase.FINISHED
             return state

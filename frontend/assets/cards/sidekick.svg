@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#92400e"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#92400e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <rect width="240" height="300" fill="url(#glow)"/>
+  <!-- Stars / sparkles -->
+  <text x="18" y="42" font-size="14" fill="rgba(253,224,71,0.7)">★</text>
+  <text x="200" y="55" font-size="10" fill="rgba(253,224,71,0.6)">✦</text>
+  <text x="185" y="25" font-size="12" fill="rgba(253,224,71,0.5)">★</text>
+  <text x="28" y="75" font-size="9" fill="rgba(253,224,71,0.5)">✦</text>
+  <!-- Shine rays from center -->
+  <line x1="118" y1="150" x2="20" y2="60" stroke="#fde68a" stroke-width="1.5" opacity="0.12"/>
+  <line x1="118" y1="150" x2="220" y2="60" stroke="#fde68a" stroke-width="1.5" opacity="0.12"/>
+  <line x1="118" y1="150" x2="118" y2="20" stroke="#fde68a" stroke-width="1.5" opacity="0.1"/>
+  <!-- Ground shadow -->
+  <ellipse cx="118" cy="295" rx="68" ry="9" fill="#78350f" opacity="0.7"/>
+  <!-- Pants (neat, brown) -->
+  <rect x="83" y="228" width="30" height="70" fill="#92400e" rx="8"/>
+  <rect x="119" y="228" width="30" height="70" fill="#92400e" rx="8"/>
+  <!-- Shoes -->
+  <rect x="76" y="287" width="42" height="13" fill="#78350f" rx="6"/>
+  <rect x="114" y="287" width="42" height="13" fill="#78350f" rx="6"/>
+  <!-- Golden superhero outfit -->
+  <ellipse cx="118" cy="215" rx="55" ry="68" fill="#d97706"/>
+  <rect x="63" y="175" width="110" height="95" fill="#d97706" rx="10"/>
+  <!-- Cape -->
+  <path d="M 75 185 Q 40 230 55 290 Q 70 295 75 260 Q 95 230 110 220" fill="#b45309" opacity="0.9"/>
+  <path d="M 161 185 Q 196 230 181 290 Q 166 295 161 260 Q 141 230 126 220" fill="#b45309" opacity="0.9"/>
+  <!-- Chest star emblem -->
+  <polygon points="118,195 122,208 135,208 125,216 129,229 118,222 107,229 111,216 101,208 114,208" fill="#fef3c7" opacity="0.95"/>
+  <!-- Belt -->
+  <rect x="73" y="238" width="90" height="10" fill="#78350f" rx="3"/>
+  <rect x="113" y="234" width="14" height="18" fill="#fbbf24" rx="2"/>
+  <!-- Left arm (fist up, heroic) -->
+  <ellipse cx="57" cy="200" rx="18" ry="42" fill="#d97706" transform="rotate(-25 57 200)"/>
+  <!-- Right arm (thumbs up) -->
+  <ellipse cx="179" cy="215" rx="18" ry="38" fill="#d97706" transform="rotate(15 179 215)"/>
+  <!-- Gloves (golden) -->
+  <ellipse cx="44" cy="168" rx="14" ry="13" fill="#fbbf24"/>
+  <ellipse cx="188" cy="245" rx="14" ry="12" fill="#fbbf24"/>
+  <!-- Thumbs up hand shape -->
+  <ellipse cx="188" cy="236" rx="5" ry="10" fill="#f59e0b"/>
+  <!-- Dog head (golden retriever) -->
+  <ellipse cx="118" cy="128" rx="52" ry="55" fill="#fbbf24"/>
+  <!-- Floppy ears -->
+  <ellipse cx="72" cy="130" rx="22" ry="38" fill="#f59e0b"/>
+  <ellipse cx="164" cy="130" rx="22" ry="38" fill="#f59e0b"/>
+  <!-- Inner ear -->
+  <ellipse cx="72" cy="132" rx="14" ry="26" fill="#d97706" opacity="0.6"/>
+  <ellipse cx="164" cy="132" rx="14" ry="26" fill="#d97706" opacity="0.6"/>
+  <!-- Face (muzzle area lighter) -->
+  <ellipse cx="118" cy="148" rx="28" ry="20" fill="#fde68a"/>
+  <!-- Hero mask / domino mask -->
+  <rect x="84" y="115" width="72" height="18" fill="#1c1917" rx="9"/>
+  <!-- Eyes through mask (bright, determined) -->
+  <ellipse cx="103" cy="124" rx="10" ry="9" fill="#fde68a"/>
+  <ellipse cx="133" cy="124" rx="10" ry="9" fill="#fde68a"/>
+  <ellipse cx="103" cy="124" rx="6" ry="7" fill="#1c0e00"/>
+  <ellipse cx="133" cy="124" rx="6" ry="7" fill="#1c0e00"/>
+  <ellipse cx="105" cy="122" rx="2.5" ry="2.5" fill="white"/>
+  <ellipse cx="135" cy="122" rx="2.5" ry="2.5" fill="white"/>
+  <!-- Nose (black, wet) -->
+  <ellipse cx="118" cy="147" rx="9" ry="7" fill="#1c1917"/>
+  <ellipse cx="116" cy="145" rx="3" ry="2" fill="white" opacity="0.5"/>
+  <!-- Big friendly grin -->
+  <path d="M 100 157 Q 118 172 136 157" stroke="#1c1917" stroke-width="2.5" fill="#fde68a"/>
+  <!-- Tongue out (friendly/excited) -->
+  <ellipse cx="118" cy="168" rx="10" ry="8" fill="#f87171"/>
+  <!-- Fur tufts on forehead -->
+  <path d="M 100 90 Q 110 78 118 88 Q 124 76 136 86" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Action lines (speed/enthusiasm) -->
+  <line x1="12" y1="200" x2="40" y2="205" stroke="#fde68a" stroke-width="2" opacity="0.4"/>
+  <line x1="10" y1="212" x2="38" y2="212" stroke="#fde68a" stroke-width="1.5" opacity="0.3"/>
+  <line x1="196" y1="180" x2="224" y2="175" stroke="#fde68a" stroke-width="2" opacity="0.4"/>
+  <line x1="198" y1="192" x2="226" y2="192" stroke="#fde68a" stroke-width="1.5" opacity="0.3"/>
+</svg>

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#0e7490"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="55%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#a5f3fc" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0e7490" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <rect width="240" height="300" fill="url(#glow)"/>
+  <!-- Code in background -->
+  <text x="15" y="35" font-size="9" fill="rgba(165,243,252,0.25)" font-family="monospace">01101011 10110</text>
+  <text x="10" y="52" font-size="9" fill="rgba(165,243,252,0.2)" font-family="monospace">10100111 01010</text>
+  <text x="140" y="80" font-size="9" fill="rgba(165,243,252,0.15)" font-family="monospace">SECRET</text>
+  <text x="145" y="270" font-size="9" fill="rgba(165,243,252,0.15)" font-family="monospace">01110</text>
+  <!-- Notebook/files at bottom -->
+  <rect x="155" y="250" width="60" height="40" fill="#0c4a6e" rx="4"/>
+  <rect x="160" y="255" width="50" height="5" fill="#7dd3fc" opacity="0.5"/>
+  <rect x="160" y="265" width="40" height="5" fill="#7dd3fc" opacity="0.4"/>
+  <rect x="160" y="275" width="45" height="5" fill="#7dd3fc" opacity="0.3"/>
+  <!-- Ground shadow -->
+  <ellipse cx="118" cy="295" rx="65" ry="8" fill="#0c4a6e" opacity="0.7"/>
+  <!-- Body - smart outfit -->
+  <ellipse cx="118" cy="220" rx="55" ry="70" fill="#0c4a6e"/>
+  <rect x="63" y="175" width="110" height="100" fill="#0c4a6e" rx="10"/>
+  <!-- Cardigan/jacket -->
+  <polygon points="118,175 92,205 100,300 118,260" fill="#0369a1"/>
+  <polygon points="118,175 144,205 138,300 118,260" fill="#0369a1"/>
+  <!-- Bow tie -->
+  <polygon points="108,182 118,190 108,198" fill="#e0f2fe"/>
+  <polygon points="128,182 118,190 128,198" fill="#e0f2fe"/>
+  <circle cx="118" cy="190" r="4" fill="#bae6fd"/>
+  <!-- Left arm with notebook -->
+  <ellipse cx="62" cy="220" rx="18" ry="38" fill="#0c4a6e" transform="rotate(-5 62 220)"/>
+  <!-- Right arm pointing to head (thinking) -->
+  <ellipse cx="174" cy="208" rx="18" ry="35" fill="#0c4a6e" transform="rotate(15 174 208)"/>
+  <!-- Notebook in left hand -->
+  <rect x="35" y="238" width="35" height="44" fill="#fef3c7" rx="3"/>
+  <rect x="40" y="244" width="25" height="3" fill="#0c4a6e" opacity="0.4"/>
+  <rect x="40" y="251" width="20" height="3" fill="#0c4a6e" opacity="0.4"/>
+  <rect x="40" y="258" width="22" height="3" fill="#0c4a6e" opacity="0.4"/>
+  <!-- Right hand (finger to temple) -->
+  <ellipse cx="178" cy="188" rx="12" ry="15" fill="#d4a060"/>
+  <!-- Cat head with big round glasses -->
+  <ellipse cx="118" cy="130" rx="52" ry="55" fill="#d4a060"/>
+  <!-- Cat ears -->
+  <polygon points="82,92 74,50 108,86" fill="#d4a060"/>
+  <polygon points="154,92 162,50 130,86" fill="#d4a060"/>
+  <polygon points="84,90 79,62 106,84" fill="#ffb8a0" opacity="0.8"/>
+  <polygon points="152,90 157,62 132,84" fill="#ffb8a0" opacity="0.8"/>
+  <!-- Face -->
+  <ellipse cx="118" cy="148" rx="26" ry="18" fill="#e8bc80"/>
+  <!-- Big round glasses -->
+  <circle cx="100" cy="128" r="18" fill="none" stroke="#7dd3fc" stroke-width="3.5"/>
+  <circle cx="136" cy="128" r="18" fill="none" stroke="#7dd3fc" stroke-width="3.5"/>
+  <line x1="118" y1="128" x2="118" y2="128" stroke="#7dd3fc" stroke-width="3.5"/>
+  <path d="M 82 128 Q 78 120 75 128" stroke="#7dd3fc" stroke-width="3" fill="none"/>
+  <path d="M 154 128 Q 158 120 161 128" stroke="#7dd3fc" stroke-width="3" fill="none"/>
+  <!-- Bridge -->
+  <line x1="118" y1="128" x2="118" y2="128" stroke="#7dd3fc" stroke-width="3"/>
+  <!-- Eyes behind glasses -->
+  <ellipse cx="100" cy="128" rx="8" ry="9" fill="#1c3a4a"/>
+  <ellipse cx="136" cy="128" rx="8" ry="9" fill="#1c3a4a"/>
+  <ellipse cx="102" cy="125" rx="3" ry="3" fill="white"/>
+  <ellipse cx="138" cy="125" rx="3" ry="3" fill="white"/>
+  <!-- Nose (small, cute) -->
+  <ellipse cx="118" cy="145" rx="6" ry="4" fill="#c07850"/>
+  <!-- Knowing smile -->
+  <path d="M 108 153 Q 118 162 128 153" stroke="#7a4030" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="92" y1="146" x2="62" y2="140" stroke="#7a4030" stroke-width="1.2" opacity="0.5"/>
+  <line x1="92" y1="150" x2="62" y2="150" stroke="#7a4030" stroke-width="1.2" opacity="0.5"/>
+  <line x1="144" y1="146" x2="174" y2="140" stroke="#7a4030" stroke-width="1.2" opacity="0.5"/>
+  <line x1="144" y1="150" x2="174" y2="150" stroke="#7a4030" stroke-width="1.2" opacity="0.5"/>
+  <!-- Thought bubble / formula -->
+  <circle cx="180" cy="65" r="28" fill="#0c4a6e" opacity="0.7"/>
+  <text x="168" y="58" font-size="10" fill="#7dd3fc" font-family="monospace">f(x)</text>
+  <text x="166" y="73" font-size="9" fill="#7dd3fc" font-family="monospace">=WIN</text>
+  <circle cx="158" cy="80" r="5" fill="#0c4a6e" opacity="0.5"/>
+  <circle cx="150" cy="90" r="3" fill="#0c4a6e" opacity="0.4"/>
+</svg>

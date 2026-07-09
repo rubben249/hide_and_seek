@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#be185d"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#fce7f3" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#be185d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="300" fill="url(#bg)"/>
+  <rect width="240" height="300" fill="url(#glow)"/>
+  <!-- Confetti/sparkles background -->
+  <rect x="30" y="20" width="8" height="8" fill="#fbbf24" opacity="0.5" transform="rotate(20 30 20)"/>
+  <rect x="190" y="35" width="6" height="6" fill="#a3e635" opacity="0.5" transform="rotate(-15 190 35)"/>
+  <rect x="65" y="55" width="7" height="7" fill="#60a5fa" opacity="0.4" transform="rotate(40 65 55)"/>
+  <rect x="170" y="60" width="5" height="5" fill="#fbbf24" opacity="0.6" transform="rotate(10 170 60)"/>
+  <rect x="20" y="85" width="6" height="6" fill="#f0abfc" opacity="0.5" transform="rotate(30 20 85)"/>
+  <text x="195" y="90" font-size="16" fill="rgba(251,191,36,0.6)">✦</text>
+  <text x="25" y="115" font-size="12" fill="rgba(252,240,243,0.4)">★</text>
+  <!-- Ground shadow -->
+  <ellipse cx="118" cy="295" rx="70" ry="9" fill="#9d174d" opacity="0.7"/>
+  <!-- Pants (flared, stylish) -->
+  <rect x="82" y="228" width="32" height="70" fill="#7c3aed" rx="8"/>
+  <rect x="118" y="228" width="32" height="70" fill="#7c3aed" rx="8"/>
+  <!-- Shoes (platform, funky) -->
+  <rect x="74" y="287" width="44" height="13" fill="#c026d3" rx="6"/>
+  <rect x="112" y="287" width="44" height="13" fill="#c026d3" rx="6"/>
+  <!-- Shirt / flamboyant jacket (open) -->
+  <ellipse cx="118" cy="210" rx="55" ry="65" fill="#ec4899"/>
+  <rect x="63" y="175" width="110" height="88" fill="#ec4899" rx="10"/>
+  <!-- Open collar/chest shirt (white) -->
+  <polygon points="118,175 100,200 110,275 118,250" fill="white" opacity="0.9"/>
+  <polygon points="118,175 136,200 128,275 118,250" fill="white" opacity="0.9"/>
+  <!-- Jacket lapels -->
+  <polygon points="118,175 93,205 100,228 118,245" fill="#be185d"/>
+  <polygon points="118,175 143,205 138,228 118,245" fill="#be185d"/>
+  <!-- Chain/necklace -->
+  <path d="M 98 192 Q 118 205 138 192" stroke="#fbbf24" stroke-width="2.5" fill="none"/>
+  <!-- Left arm (raised dramatically) -->
+  <ellipse cx="60" cy="200" rx="18" ry="40" fill="#ec4899" transform="rotate(-35 60 200)"/>
+  <!-- Right arm (pointing at viewer) -->
+  <ellipse cx="178" cy="215" rx="18" ry="38" fill="#ec4899" transform="rotate(20 178 215)"/>
+  <!-- Hands -->
+  <ellipse cx="42" cy="170" rx="14" ry="12" fill="#d4845a"/>
+  <ellipse cx="190" cy="242" rx="14" ry="11" fill="#d4845a"/>
+  <!-- Wolf/dog head (stylish) -->
+  <ellipse cx="118" cy="130" rx="52" ry="55" fill="#d4845a"/>
+  <!-- Wolf ears (pointed, attitude) -->
+  <polygon points="82,95 72,42 112,86" fill="#d4845a"/>
+  <polygon points="154,95 164,42 126,86" fill="#d4845a"/>
+  <polygon points="83,93 76,55 109,84" fill="#be185d" opacity="0.7"/>
+  <polygon points="153,93 160,55 129,84" fill="#be185d" opacity="0.7"/>
+  <!-- Sunglasses (cool, heart-shaped hints) -->
+  <rect x="82" y="120" width="40" height="20" fill="#1a0f20" rx="10"/>
+  <rect x="118" y="120" width="40" height="20" fill="#1a0f20" rx="10"/>
+  <line x1="122" y1="130" x2="122" y2="130" stroke="#c026d3" stroke-width="3"/>
+  <!-- Lens shimmer -->
+  <ellipse cx="98" cy="128" rx="7" ry="5" fill="#ec4899" opacity="0.4"/>
+  <ellipse cx="138" cy="128" rx="7" ry="5" fill="#ec4899" opacity="0.4"/>
+  <line x1="82" y1="130" x2="76" y2="130" stroke="#1a0f20" stroke-width="3"/>
+  <line x1="158" y1="130" x2="164" y2="130" stroke="#1a0f20" stroke-width="3"/>
+  <!-- Snout -->
+  <ellipse cx="118" cy="155" rx="22" ry="16" fill="#c07850"/>
+  <ellipse cx="118" cy="152" rx="8" ry="6" fill="#7f1d1d"/>
+  <!-- Big confident grin -->
+  <path d="M 102 162 Q 118 175 134 162" stroke="#7f1d1d" stroke-width="2.5" fill="#c07850"/>
+  <!-- Teeth visible -->
+  <rect x="110" y="164" width="16" height="6" fill="white" rx="2"/>
+  <!-- Hair / stylish quiff -->
+  <path d="M 80 90 Q 105 60 118 75 Q 130 55 150 78 Q 165 92 152 100" fill="#1a0f20" stroke="none"/>
+  <path d="M 88 88 Q 110 65 118 78 Q 126 62 145 82" fill="#c026d3" opacity="0.5"/>
+</svg>
