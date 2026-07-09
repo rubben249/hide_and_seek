@@ -3,11 +3,11 @@ WebSocket handler for online multiplayer mode.
 
 Security flow:
   1. Client connects to /ws
-  2. Client must send {"type":"auth","password":"...","player_name":"..."} within 5 seconds
-  3. Server validates password (rate-limited per IP)
-  4. On success: issues {"type":"auth_ok","token":"<UUID>"}
-  5. All subsequent messages must include {"token":"..."}
-  6. Client can create/join rooms and play
+  2. Client must send {"type":"auth","player_name":"..."} within 5 seconds
+  3. Server issues {"type":"auth_ok","token":"<UUID>"}
+  4. All subsequent messages must include {"token":"..."}
+  5. Client can create/join rooms and play
+  6. Per-room passwords are the only access control (set by room creator)
 
 Disconnect/reconnect:
   - If a player disconnects during an active game, they are kept in the room as disconnected.
@@ -36,7 +36,6 @@ from app.core.security import (
     create_session,
     invalidate_session,
     reset_rate_limit,
-    validate_password,
     validate_session,
 )
 from app.game.engine import (
@@ -184,18 +183,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             return
 
         if not check_rate_limit(client_ip):
-            await _send_error(websocket, "rate_limited", "Too many attempts. Try again in 1 minute.")
+            await _send_error(websocket, "rate_limited", "Too many connections from your IP. Try again in 1 minute.")
             await websocket.close(code=4029)
             return
 
-        password = msg.get("password", "")
-        if not validate_password(password):
-            await _send_error(websocket, "auth_failed", "Invalid password")
-            await websocket.close(code=4004)
-            return
-
         reset_rate_limit(client_ip)
-        player_name = str(msg.get("player_name", "Player"))[:32]
+        player_name = str(msg.get("player_name", "Player"))[:32].strip() or "Player"
         token = create_session(client_ip, player_name)
         manager.register(token, websocket)
 

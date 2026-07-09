@@ -11,7 +11,7 @@ export class GameSocket {
     this.playerName = null;
   }
 
-  connect(playerName, password) {
+  connect(playerName) {
     return new Promise((resolve, reject) => {
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
       const url = `${proto}//${location.host}/ws`;
@@ -23,23 +23,28 @@ export class GameSocket {
       }, 8000);
 
       this._ws.onopen = () => {
-        // Send auth immediately
-        this._ws.send(JSON.stringify({ type: "auth", password, player_name: playerName }));
+        this._ws.send(JSON.stringify({ type: "auth", player_name: playerName }));
       };
 
       this._ws.onmessage = (event) => {
         let msg;
         try { msg = JSON.parse(event.data); } catch { return; }
 
-        if (msg.type === "auth_ok") {
-          clearTimeout(timeout);
-          this.token = msg.token;
-          this.playerName = msg.player_name;
-          resolve(msg);
-        } else if (msg.type === "auth_failed" || msg.type === "auth_timeout" || msg.type === "rate_limited") {
-          clearTimeout(timeout);
-          reject(new Error(msg.message || "Authentication failed"));
-          this._ws.close();
+        if (!this.token) {
+          if (msg.type === "auth_ok") {
+            clearTimeout(timeout);
+            this.token = msg.token;
+            this.playerName = msg.player_name;
+            this._ws.onmessage = (e) => {
+              let m; try { m = JSON.parse(e.data); } catch { return; }
+              this._onMessage(m);
+            };
+            resolve(msg);
+          } else if (["auth_timeout", "rate_limited", "error"].includes(msg.type)) {
+            clearTimeout(timeout);
+            reject(new Error(msg.message || "Could not connect"));
+            this._ws.close();
+          }
         } else {
           this._onMessage(msg);
         }
@@ -53,32 +58,6 @@ export class GameSocket {
       this._ws.onerror = () => {
         clearTimeout(timeout);
         reject(new Error("WebSocket error — could not connect"));
-      };
-
-      // After auth is resolved, future messages go to _onMessage
-      this._ws.onmessage = (event) => {
-        let msg;
-        try { msg = JSON.parse(event.data); } catch { return; }
-
-        if (!this.token) {
-          // Still waiting for auth
-          if (msg.type === "auth_ok") {
-            clearTimeout(timeout);
-            this.token = msg.token;
-            this.playerName = msg.player_name;
-            // Reset to normal handler
-            this._ws.onmessage = (e) => {
-              let m; try { m = JSON.parse(e.data); } catch { return; }
-              this._onMessage(m);
-            };
-            resolve(msg);
-          } else if (["auth_failed","auth_timeout","rate_limited","error"].includes(msg.type)) {
-            clearTimeout(timeout);
-            reject(new Error(msg.message || "Auth error"));
-          }
-        } else {
-          this._onMessage(msg);
-        }
       };
     });
   }

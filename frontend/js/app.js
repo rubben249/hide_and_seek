@@ -295,14 +295,12 @@ document.getElementById("btn-start-local")?.addEventListener("click", async () =
 // ============================================================
 document.getElementById("btn-connect")?.addEventListener("click", async () => {
   const name = document.getElementById("online-name").value.trim() || "Player";
-  const pass = document.getElementById("online-password").value;
-  if (!pass) { alert("Enter the server password"); return; }
 
   logOnline(`Connecting as ${name}...`, "system");
   socket = new GameSocket(handleOnlineMessage, () => logOnline("Disconnected", "error"));
 
   try {
-    await socket.connect(name, pass);
+    await socket.connect(name);
     logOnline(`Connected! Token issued.`, "system");
     document.getElementById("online-lobby").classList.remove("hidden");
     document.getElementById("online-connect-form").classList.add("hidden");
